@@ -157,7 +157,7 @@ nav.desktop-nav button.active{background:var(--accent);color:#fff;}
 .mobile-nav-divider{height:1px;background:var(--border);margin:8px 0;}
 
 /* ── LAYOUT ──────────────────────────────────────────────────────────────── */
-main{max-width:1200px;margin:0 auto;padding:40px 24px;}
+main{max-width:1200px;margin:0 auto;padding:40px 24px 60px;} /* 60px bottom for status bar */
 .view{display:none;}.view.active{display:block;}
 .page-title{
   font-size:28px;font-weight:600;letter-spacing:-0.02em;
@@ -555,22 +555,6 @@ input,select,td,th,.btn,.tab-btn{transition:background .25s,border-color .25s,co
     </button>
   </div>
 </header>
-<!-- STATUS BAR -->
-<div class="status-bar" id="status-bar">
-  <span style="display:flex;align-items:center;gap:5px;"><div class="status-bar-live"></div><strong style="color:var(--text2);">Live</strong></span>
-  <div class="status-bar-dot"></div>
-  <span>v<strong id="sb-version"></strong></span>
-  <div class="status-bar-dot"></div>
-  <span>Aggiornato il <strong id="sb-updated"></strong></span>
-  <div class="status-bar-dot"></div>
-  <span>Ultimo accesso: <strong id="sb-last-access">—</strong></span>
-  <div class="status-bar-dot"></div>
-  <span id="sb-db-status">● DB offline</span>
-  <span style="margin-left:auto;display:flex;gap:8px;align-items:center;">
-    <button class="btn-backup" onclick="openLogPanel()" style="font-size:11px;padding:3px 9px;min-height:24px;" title="Log accessi (admin)">📋 Log</button>
-  </span>
-</div>
-
 <!-- LOG PANEL -->
 <div class="log-panel" id="log-panel">
   <div class="log-panel-header">
@@ -816,8 +800,11 @@ input,select,td,th,.btn,.tab-btn{transition:background .25s,border-color .25s,co
   </div>
   <div class="table-card" id="tbl-kiosk-hist">
     <div class="table-card-header">
-      <div class="table-card-title">Storico Giornaliero Kiosk</div><button class="collapse-btn" onclick="toggleTable('tbl-kiosk-hist')" title="Comprimi/Espandi">▼</button>
-      <div id="kiosk-month-chips" style="display:flex;gap:6px;flex-wrap:wrap;"></div>
+      <div class="table-card-title">Storico Giornaliero Kiosk</div>
+      <button class="collapse-btn" onclick="toggleTable('tbl-kiosk-hist')" title="Comprimi/Espandi">▼</button>
+      <input type="date" id="kiosk-hist-date-filter" style="font-size:12px;padding:3px 8px;border-radius:6px;background:var(--surface);border:1px solid var(--border);color:var(--text);min-height:28px;" onchange="renderKioskHistory()" title="Filtra per data">
+      <button class="btn btn-secondary btn-xs" onclick="document.getElementById('kiosk-hist-date-filter').value='';renderKioskHistory()">✕ Data</button>
+      <div id="kiosk-month-chips" style="display:flex;gap:5px;flex-wrap:wrap;"></div>
     </div>
     <div class="scroll-x"><table>
       <thead><tr>
@@ -829,19 +816,29 @@ input,select,td,th,.btn,.tab-btn{transition:background .25s,border-color .25s,co
     </table></div>
   </div>
 
-  <!-- Outlier Chart -->
+  <!-- Kiosk Trend Chart -->
   <div class="chart-card">
-    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:4px;flex-wrap:wrap;gap:8px;">
-      <div class="chart-title" style="margin-bottom:0;">Andamento Kiosk% Giornaliero</div>
-      <div style="display:flex;align-items:center;gap:16px;font-size:12px;color:var(--text3);">
-        <span style="display:flex;align-items:center;gap:5px;"><span style="width:10px;height:3px;background:var(--accent);display:inline-block;border-radius:2px;"></span>Kiosk%</span>
-        <span style="display:flex;align-items:center;gap:5px;"><span style="width:10px;height:10px;border-radius:50%;background:#D63232;display:inline-block;"></span>Outlier ≤30%</span>
-        <span style="display:flex;align-items:center;gap:5px;"><span style="width:18px;height:1.5px;background:#1A8A3C;display:inline-block;"></span>OK 55%</span>
-        <span style="display:flex;align-items:center;gap:5px;"><span style="width:18px;height:1.5px;background:#C9920A;display:inline-block;"></span>Top 72%</span>
+    <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px;margin-bottom:12px;">
+      <div class="chart-title" style="margin-bottom:0;">Andamento Kiosk% — Trend Giornaliero</div>
+      <div style="display:flex;gap:6px;flex-wrap:wrap;align-items:center;">
+        <select id="kiosk-chart-gran" onchange="renderKioskTrendChart()" style="padding:4px 10px;font-size:12px;border-radius:6px;background:var(--surface);border:1px solid var(--border);color:var(--text);min-height:30px;cursor:pointer;">
+          <option value="year">Anno corrente</option>
+          <option value="q1">Q1</option>
+          <option value="q2">Q2</option>
+          <option value="q3">Q3</option>
+          <option value="q4">Q4</option>
+          <option value="month">Mese selezionato</option>
+        </select>
+        <input type="month" id="kiosk-chart-month" style="display:none;padding:4px 10px;font-size:12px;border-radius:6px;background:var(--surface);border:1px solid var(--border);color:var(--text);min-height:30px;" onchange="renderKioskTrendChart()">
       </div>
     </div>
-    <div style="font-size:11px;color:var(--text3);margin-bottom:16px;">🔴 ≤30% outlier &nbsp;·&nbsp; 🟢 ≥55% ok &nbsp;·&nbsp; 🟡 ≥72% top — i punti rossi grandi indicano giornate critiche</div>
-    <div style="position:relative;height:280px;"><canvas id="chartKioskTrend"></canvas></div>
+    <div style="display:flex;align-items:center;gap:14px;flex-wrap:wrap;font-size:11px;color:var(--text3);margin-bottom:12px;">
+      <span style="display:flex;align-items:center;gap:5px;"><span style="width:10px;height:10px;border-radius:50%;background:var(--red);display:inline-block;"></span>&lt;54.5% sotto soglia</span>
+      <span style="display:flex;align-items:center;gap:5px;"><span style="width:10px;height:10px;border-radius:50%;background:var(--green);display:inline-block;"></span>54.5–74.5% ok</span>
+      <span style="display:flex;align-items:center;gap:5px;"><span style="width:10px;height:10px;border-radius:50%;background:var(--accent);display:inline-block;"></span>&gt;74.5% top</span>
+      <span style="display:flex;align-items:center;gap:5px;"><span style="width:20px;height:2px;background:var(--green);display:inline-block;border-radius:1px;"></span>Target 55%</span>
+    </div>
+    <div style="position:relative;height:320px;"><canvas id="chartKioskTrend"></canvas></div>
   </div>
 </div>
 
@@ -1345,22 +1342,22 @@ function renderDashboard(){
     const qData=getQagg(q);const prevQ=q>1?q-1:4;const prevQData=getQagg(prevQ);
     const delta=qData.bags-qData.flights;const p=pn(qData.bags,qData.flights);
     const ratio=ratioStr(qData.bags,qData.flights);const vsPrec=qData.bags-prevQData.bags;
-    const kq=getKioskQ(q);const kpcc=pp=>pp>=80?'var(--green)':pp>=60?'var(--accent)':'var(--red)';
+    const kq=getKioskQ(q);const kpcc=pp=>kioskPctColor(pp);
     kpiHtml=`
 <div class="kpi-card ${dc(delta)}"><div class="kpi-label">Bagagli Q${q} ${year}</div><div class="kpi-main"><div class="kpi-value mono">${qData.bags.toLocaleString('it')}</div><div class="kpi-unit">bag</div></div><div class="kpi-row"><div class="kpi-sub">su ${qData.flights.toLocaleString('it')} voli · ${qData.days}gg</div><div class="kpi-delta ${dc(delta)}">${ds(delta)}${delta}</div></div><div class="kpi-progress"><div class="kpi-progress-bar" style="width:${Math.min(p,100)}%;background:${bc(p)};"></div></div><div class="kpi-missing">Ratio: <strong style="color:${bc(p)}">${ratio}</strong> &nbsp;|&nbsp; ${p>=100?'<span style="color:var(--green)">✓ TARGET</span>':'mancano <span style="color:var(--red);font-weight:600;">'+Math.max(0,qData.flights-qData.bags)+'</span> bag'}</div></div>
 <div class="kpi-card blue"><div class="kpi-label">Voli Q${q} ${year}</div><div class="kpi-main"><div class="kpi-value mono">${qData.flights.toLocaleString('it')}</div><div class="kpi-unit">voli</div></div><div class="kpi-row"><div class="kpi-sub">${qData.days} giorni operativi</div></div><div class="kpi-progress"><div class="kpi-progress-bar" style="width:${Math.min(p,100)}%;background:${bc(p)};"></div></div></div>
 <div class="kpi-card ${delta>=0?'green':'red'}"><div class="kpi-label">Delta Q${q} vs Q${prevQ}</div><div class="kpi-main"><div class="kpi-value mono" style="color:${delta>=0?'var(--green)':'var(--red)'}">${ds(delta)}${delta}</div><div class="kpi-unit">bag</div></div><div class="kpi-row"><div class="kpi-sub">vs Q${prevQ}: <strong style="color:${vsPrec>=0?'var(--green)':'var(--red)'};">${ds(vsPrec)}${vsPrec}</strong></div></div><div class="kpi-progress"><div class="kpi-progress-bar" style="width:${Math.min(p,100)}%;background:${bc(p)};"></div></div></div>
-<div class="kpi-card ${kq.pct>=70?'green':kq.pct>=50?'blue':'red'}"><div class="kpi-label">Kiosk% Q${q}</div><div class="kpi-main"><div class="kpi-value" style="color:${kpcc(kq.pct)};">${kq.pct>0?kq.pct.toFixed(1)+'%':'—'}</div></div><div class="kpi-row"><div class="kpi-sub">${kq.totT} ckd · ${kq.days} giorni</div></div><div class="kpi-progress"><div class="kpi-progress-bar" style="width:${Math.min(kq.pct,100)}%;background:${kpcc(kq.pct)};"></div></div></div>`;
+<div class="kpi-card ${kioskCardClass(kq.pct)}"><div class="kpi-label">Kiosk% Q${q}</div><div class="kpi-main"><div class="kpi-value" style="color:${kpcc(kq.pct)};">${kq.pct>0?kq.pct.toFixed(1)+'%':'—'}</div></div><div class="kpi-row"><div class="kpi-sub">${kq.totT} ckd · ${kq.days} giorni</div></div><div class="kpi-progress"><div class="kpi-progress-bar" style="width:${Math.min(kq.pct,100)}%;background:${kpcc(kq.pct)};"></div></div></div>`;
   } else if(_dashPeriodFilter==='today'){
     const ta=agg[today]||{flights:0,bags:0};
     const dd=ta.bags-ta.flights;const dp=pn(ta.bags,ta.flights);
     const tm=Math.max(0,ta.flights-ta.bags);const dRatio=ta.flights>0?ratioStr(ta.bags,ta.flights):'—';
-    const kd=getKioskDay(today);const kpcc=pp=>pp>=80?'var(--green)':pp>=60?'var(--accent)':'var(--red)';
+    const kd=getKioskDay(today);const kpcc=pp=>kioskPctColor(pp);
     kpiHtml=`
 <div class="kpi-card ${ta.flights===0?'blue':dc(dd)}"><div class="kpi-label">Bagagli Oggi — ${fmtDate(today)}</div><div class="kpi-main"><div class="kpi-value mono">${ta.bags}</div><div class="kpi-unit">bag</div></div><div class="kpi-row"><div class="kpi-sub">su ${ta.flights} voli</div>${ta.flights>0?`<div class="kpi-delta ${dc(dd)}">${ds(dd)}${dd}</div>`:'<div class="kpi-delta neu">—</div>'}</div><div class="kpi-progress"><div class="kpi-progress-bar" style="width:${Math.min(dp,100)}%;background:${bc(dp)};"></div></div><div class="kpi-missing">${tm===0&&ta.flights>0?'<span style="color:var(--green)">✓ TARGET</span>':ta.flights===0?'Nessun dato oggi':'mancano <span style="color:var(--red);">'+tm+'</span>'}</div></div>
 <div class="kpi-card blue"><div class="kpi-label">Voli Oggi</div><div class="kpi-main"><div class="kpi-value mono">${ta.flights}</div><div class="kpi-unit">voli</div></div><div class="kpi-row"><div class="kpi-sub">target: ${ta.flights} bag</div></div></div>
 <div class="kpi-card ${ta.flights===0?'blue':dc(dd)}"><div class="kpi-label">Ratio Oggi</div><div class="kpi-main"><div class="kpi-value mono" style="color:${bc(dp)}">${dRatio}</div></div><div class="kpi-row"><div class="kpi-sub">${dp}% del target</div></div></div>
-<div class="kpi-card ${kd.pct>=70?'green':kd.pct>=50?'blue':'red'}"><div class="kpi-label">Kiosk% Oggi</div><div class="kpi-main"><div class="kpi-value" style="color:${kpcc(kd.pct)};">${kd.pct>0?kd.pct.toFixed(1)+'%':'—'}</div></div><div class="kpi-row"><div class="kpi-sub">${kd.totT} ckd bags</div></div><div class="kpi-progress"><div class="kpi-progress-bar" style="width:${Math.min(kd.pct,100)}%;background:${kpcc(kd.pct)};"></div></div></div>`;
+<div class="kpi-card ${kioskCardClass(kd.pct)}"><div class="kpi-label">Kiosk% Oggi</div><div class="kpi-main"><div class="kpi-value" style="color:${kpcc(kd.pct)};">${kd.pct>0?kd.pct.toFixed(1)+'%':'—'}</div></div><div class="kpi-row"><div class="kpi-sub">${kd.totT} ckd bags</div></div><div class="kpi-progress"><div class="kpi-progress-bar" style="width:${Math.min(kd.pct,100)}%;background:${kpcc(kd.pct)};"></div></div></div>`;
   } else {
     // Specific month: _dashPeriodFilter = 'YYYY-MM'
     const selMk=_dashPeriodFilter;
@@ -1371,12 +1368,12 @@ function renderDashboard(){
     const prevM=Object.entries(agg).filter(([k])=>k.startsWith(prevMk)).reduce((a,[,v])=>({flights:a.flights+v.flights,bags:a.bags+v.bags}),{flights:0,bags:0});
     const delta=mData.bags-mData.flights;const p=pn(mData.bags,mData.flights);
     const ratio=ratioStr(mData.bags,mData.flights);const vsPrec=mData.bags-prevM.bags;
-    const km=getKioskMonth(selMk);const kpcc=pp=>pp>=80?'var(--green)':pp>=60?'var(--accent)':'var(--red)';
+    const km=getKioskMonth(selMk);const kpcc=pp=>kioskPctColor(pp);
     kpiHtml=`
 <div class="kpi-card ${dc(delta)}"><div class="kpi-label">Bagagli — ${mkfull(selMk)}</div><div class="kpi-main"><div class="kpi-value mono">${mData.bags.toLocaleString('it')}</div><div class="kpi-unit">bag</div></div><div class="kpi-row"><div class="kpi-sub">su ${mData.flights.toLocaleString('it')} voli · ${mData.days}gg</div><div class="kpi-delta ${dc(delta)}">${ds(delta)}${delta}</div></div><div class="kpi-progress"><div class="kpi-progress-bar" style="width:${Math.min(p,100)}%;background:${bc(p)};"></div></div><div class="kpi-missing">Ratio: <strong style="color:${bc(p)}">${ratio}</strong> &nbsp;|&nbsp; ${p>=100?'<span style="color:var(--green)">✓ TARGET</span>':'mancano <span style="color:var(--red);font-weight:600;">'+Math.max(0,mData.flights-mData.bags)+'</span> bag'}</div></div>
 <div class="kpi-card blue"><div class="kpi-label">Voli — ${mkfull(selMk)}</div><div class="kpi-main"><div class="kpi-value mono">${mData.flights.toLocaleString('it')}</div><div class="kpi-unit">voli</div></div><div class="kpi-row"><div class="kpi-sub">${mData.days} giorni operativi</div></div></div>
 <div class="kpi-card ${delta>=0?'green':'red'}"><div class="kpi-label">Delta vs ${mkfull(prevMk)}</div><div class="kpi-main"><div class="kpi-value mono" style="color:${delta>=0?'var(--green)':'var(--red)'}">${ds(delta)}${delta}</div><div class="kpi-unit">bag</div></div><div class="kpi-row"><div class="kpi-sub">vs ${mname(prevMk)}: <strong style="color:${vsPrec>=0?'var(--green)':'var(--red)'};">${ds(vsPrec)}${vsPrec}</strong></div></div><div class="kpi-progress"><div class="kpi-progress-bar" style="width:${Math.min(p,100)}%;background:${bc(p)};"></div></div></div>
-<div class="kpi-card ${km.pct>=70?'green':km.pct>=50?'blue':'red'}"><div class="kpi-label">Kiosk% ${mname(selMk)}</div><div class="kpi-main"><div class="kpi-value" style="color:${kpcc(km.pct)};">${km.pct>0?km.pct.toFixed(1)+'%':'—'}</div></div><div class="kpi-row"><div class="kpi-sub">${km.totT} ckd · ${km.days} giorni</div></div><div class="kpi-progress"><div class="kpi-progress-bar" style="width:${Math.min(km.pct,100)}%;background:${kpcc(km.pct)};"></div></div></div>`;
+<div class="kpi-card ${kioskCardClass(km.pct)}"><div class="kpi-label">Kiosk% ${mname(selMk)}</div><div class="kpi-main"><div class="kpi-value" style="color:${kpcc(km.pct)};">${km.pct>0?km.pct.toFixed(1)+'%':'—'}</div></div><div class="kpi-row"><div class="kpi-sub">${km.totT} ckd · ${km.days} giorni</div></div><div class="kpi-progress"><div class="kpi-progress-bar" style="width:${Math.min(km.pct,100)}%;background:${kpcc(km.pct)};"></div></div></div>`;
   }
   document.getElementById('dash-kpis').innerHTML=kpiHtml;
 
@@ -1466,7 +1463,7 @@ function renderKioskDashKPIs(){
   const monK=getKioskMonth(mk);
   const pctColor=p=>p>=80?'var(--green)':p>=60?'var(--accent)':'var(--red)';
   const kpiHtml=(label,pct,sub,extra)=>`
-    <div class="kpi-card ${pct>=80?'green':pct>=60?'blue':'red'}" style="position:relative;overflow:hidden;">
+    <div class="kpi-card ${kioskCardClass(pct)}" style="position:relative;overflow:hidden;">
       <div class="kpi-label">${label}</div>
       <div class="kpi-main"><div class="kpi-value" style="color:${pctColor(pct)};">${pct>0?pct.toFixed(1)+'%':'—'}</div></div>
       <div class="kpi-sub" style="margin-top:4px;">${sub}</div>
@@ -2655,18 +2652,18 @@ document.getElementById('email-modal').addEventListener('click',function(e){if(e
 function kioskPct(kiosk,total){return total>0?parseFloat((kiosk/total*100).toFixed(1)):0;}
 function kioskPctStr(kiosk,total){return total>0?(kiosk/total*100).toFixed(1)+'%':'—';}
 function kioskPctColor(pct){
-  if(pct>=72)return'#C9920A';   // oro — top performance
-  if(pct>=55)return'var(--green)'; // verde — ok
-  return'var(--red)';            // rosso — sotto soglia
+  if(pct>74.5)return'var(--accent)';  // blu — top
+  if(pct>54.5)return'var(--green)';   // verde — ok
+  return'var(--red)';                  // rosso — sotto soglia
 }
 function kioskPctBg(pct){
-  if(pct>=72)return'rgba(201,146,10,0.12)';
-  if(pct>=55)return'var(--green-bg)';
+  if(pct>74.5)return'var(--blue-bg)';
+  if(pct>54.5)return'var(--green-bg)';
   return'var(--red-bg)';
 }
 function kioskCardClass(pct){
-  if(pct>=72)return'';   // custom gold
-  if(pct>=55)return'green';
+  if(pct>74.5)return'blue';
+  if(pct>54.5)return'green';
   return'red';
 }
 
@@ -2808,7 +2805,7 @@ function renderKioskDayKPIs(date){
     <div class="kpi-card"><div class="kpi-label">Kiosk</div>
       <div class="kpi-main"><div class="kpi-value">${totK}</div></div>
       <div class="kpi-sub">${kioskPctStr(totK,totT)} del totale</div></div>
-    <div class="kpi-card ${pct>=80?'green':pct>=60?'blue':'red'}">
+    <div class="kpi-card ${kioskCardClass(pct)}">
       <div class="kpi-label">Kiosk %</div>
       <div class="kpi-main"><div class="kpi-value" style="color:${pctColor};">${totT>0?pct.toFixed(1)+'%':'—'}</div></div>
       <div class="kpi-progress"><div class="kpi-progress-bar" style="width:${Math.min(pct,100)}%;background:${pctColor};"></div></div>
@@ -2819,10 +2816,11 @@ function renderKioskHistory(){
   const kiosk=gdKiosk();
   const today=ts();
   buildMonthChips('kiosk-month-chips','kiosk','setKioskMonthFilter');
+  const dateFilter=document.getElementById('kiosk-hist-date-filter')?.value||'';
   const allRows=Object.entries(kiosk).sort((a,b)=>b[0].localeCompare(a[0]));
-  const rows=_kioskMonthFilter
-    ? allRows.filter(([d])=>d.startsWith(_kioskMonthFilter))
-    : allRows;
+  let rows=allRows;
+  if(dateFilter) rows=allRows.filter(([d])=>d===dateFilter);
+  else if(_kioskMonthFilter) rows=allRows.filter(([d])=>d.startsWith(_kioskMonthFilter));
   let html='';
   rows.forEach(([d,dayRows])=>{
     const totT=dayRows.reduce((s,r)=>s+(parseFloat(r.totalCkdB)||0),0);
@@ -2838,23 +2836,41 @@ function renderKioskHistory(){
       <td class="right"><button class="btn btn-secondary btn-xs" onclick="openKioskDay('${d}')">✎</button></td>
     </tr>`;
   });
-  document.getElementById('kiosk-history-body').innerHTML=html||'<tr><td colspan="6"><div class="empty"><div class="empty-icon">🖥</div><div class="empty-text">Nessun dato kiosk ancora inserito.</div></div></td></tr>';
-  // Only render chart when kiosk view is visible
-  if(document.getElementById('view-kiosk').classList.contains('active')){
-    setTimeout(renderKioskTrendChart, 50);
+  document.getElementById('kiosk-history-body').innerHTML=html||'<tr><td colspan="6"><div class="empty"><div class="empty-icon">🖥</div><div class="empty-text">Nessun dato kiosk.</div></div></td></tr>';
+  if(document.getElementById('view-kiosk')?.classList.contains('active')){
+    setTimeout(renderKioskTrendChart,50);
   }
 }
+
 
 let _kioskChart=null;
 function renderKioskTrendChart(){
   const kiosk=gdKiosk();const year=cy();
-  const OUTLIER=30;const OK=55;const TOP=72;
-  const entries=Object.entries(kiosk)
-    .filter(([d])=>d.startsWith(String(year)))
-    .sort(([a],[b])=>a.localeCompare(b));
-  if(!entries.length)return;
+  const gran=document.getElementById('kiosk-chart-gran')?.value||'year';
+  const monthInput=document.getElementById('kiosk-chart-month');
+  if(monthInput)monthInput.style.display=gran==='month'?'inline-block':'none';
+  const selMonth=document.getElementById('kiosk-chart-month')?.value||cmk();
+
+  // ── Filter entries by selected granularity ──────────────────────────────
+  const qMonths={q1:['01','02','03'],q2:['04','05','06'],q3:['07','08','09'],q4:['10','11','12']};
+  let entries=Object.entries(kiosk).filter(([d])=>d.startsWith(String(year))).sort(([a],[b])=>a.localeCompare(b));
+  if(gran==='month')entries=entries.filter(([d])=>d.startsWith(selMonth));
+  else if(gran in qMonths)entries=entries.filter(([d])=>{const m=d.substring(5,7);return qMonths[gran].includes(m);});
+
   const ctx=document.getElementById('chartKioskTrend');
   if(!ctx||!ctx.getContext)return;
+
+  const isDark=!document.body.classList.contains('light');
+  const gridColor=isDark?'rgba(255,255,255,.07)':'rgba(0,0,0,.06)';
+  const tickColor=isDark?'#6E6E73':'#9AA0B4';
+  const greenColor=isDark?'#32D74B':'#1A8A3C';
+  const redColor=isDark?'#FF453A':'#D63232';
+  const blueColor=isDark?'#0A84FF':'#0071E3';
+
+  if(!entries.length){
+    if(_kioskChart){_kioskChart.destroy();_kioskChart=null;}
+    return;
+  }
 
   const labels=entries.map(([d])=>fmtDate(d));
   const pcts=entries.map(([,rows])=>{
@@ -2863,56 +2879,70 @@ function renderKioskTrendChart(){
     return t>0?parseFloat((k/t*100).toFixed(1)):null;
   });
 
-  const isDark=!document.body.classList.contains('light');
-  const gridColor=isDark?'rgba(255,255,255,.06)':'rgba(0,0,0,.06)';
-  const tickColor=isDark?'#6E6E73':'#A1A1A6';
-  const lineColor=isDark?'#0A84FF':'#0071E3';
-  const goldColor='#C9920A';
-  const greenColor=isDark?'#32D74B':'#1A8A3C';
-  const redColor=isDark?'#FF453A':'#D63232';
-
-  // Point color by threshold
-  const pointBg=pcts.map(p=>{
-    if(p===null)return lineColor;
-    if(p<=OUTLIER)return redColor;
-    if(p>=TOP)return goldColor;
-    if(p>=OK)return greenColor;
+  // Bar colors per value
+  const barColors=pcts.map(p=>{
+    if(p===null)return isDark?'rgba(255,255,255,.1)':'rgba(0,0,0,.08)';
+    if(p>74.5)return blueColor;
+    if(p>54.5)return greenColor;
     return redColor;
   });
-  const pointR=pcts.map(p=>p!==null&&p<=OUTLIER?7:4);
 
-  if(_kioskChart)_kioskChart.destroy();
+  if(_kioskChart){_kioskChart.destroy();_kioskChart=null;}
 
-  // Use ChartDataLabels only for outlier annotations
   _kioskChart=new Chart(ctx,{
     plugins:[ChartDataLabels],
-    type:'line',
+    type:'bar',
     data:{labels,datasets:[
       {
-        label:'Kiosk%',data:pcts,
-        borderColor:lineColor,
-        backgroundColor:isDark?'rgba(10,132,255,.07)':'rgba(0,113,227,.07)',
-        borderWidth:2,tension:.3,fill:true,spanGaps:true,
-        pointBackgroundColor:pointBg,
-        pointBorderColor:pointBg,
-        pointBorderWidth:0,
-        pointRadius:pointR,
-        pointHoverRadius:8,
+        label:'Kiosk%',
+        data:pcts,
+        backgroundColor:barColors,
+        borderColor:barColors,
+        borderWidth:0,
+        borderRadius:3,
+        borderSkipped:false,
         datalabels:{
-          display:(ctx)=>{const p=pcts[ctx.dataIndex];return p!==null&&p<=OUTLIER;},
-          anchor:'top',align:'top',offset:5,
-          color:redColor,font:{size:10,weight:'700'},
+          display:(ctx)=>{
+            const p=pcts[ctx.dataIndex];
+            // Show label only for outliers <=30% or if few data points
+            return p!==null&&(p<=30||entries.length<=20);
+          },
+          anchor:'end',align:'end',offset:2,
+          color:(ctx)=>barColors[ctx.dataIndex],
+          font:{size:9,weight:'700'},
           formatter:v=>v!==null?v.toFixed(1)+'%':''
         }
       },
-      // Three threshold reference lines
-      {label:'Soglia 30%',data:pcts.map(()=>OUTLIER),borderColor:redColor,borderDash:[4,4],borderWidth:1,pointRadius:0,fill:false,tension:0,datalabels:{display:false}},
-      {label:'Target 55%',data:pcts.map(()=>OK),borderColor:greenColor,borderDash:[4,4],borderWidth:1,pointRadius:0,fill:false,tension:0,datalabels:{display:false}},
-      {label:'Top 72%',data:pcts.map(()=>TOP),borderColor:goldColor,borderDash:[4,4],borderWidth:1,pointRadius:0,fill:false,tension:0,datalabels:{display:false}}
+      // Target line at 55%
+      {
+        label:'Target 55%',
+        data:pcts.map(()=>54.5),
+        type:'line',
+        borderColor:greenColor,
+        borderDash:[6,3],
+        borderWidth:2,
+        pointRadius:0,
+        fill:false,
+        tension:0,
+        datalabels:{display:false}
+      },
+      // Top threshold at 74.5%
+      {
+        label:'Top 74.5%',
+        data:pcts.map(()=>74.5),
+        type:'line',
+        borderColor:blueColor,
+        borderDash:[6,3],
+        borderWidth:1.5,
+        pointRadius:0,
+        fill:false,
+        tension:0,
+        datalabels:{display:false}
+      }
     ]},
     options:{
       responsive:true,maintainAspectRatio:false,
-      layout:{padding:{top:28,right:8}},
+      layout:{padding:{top:20,right:4,left:4}},
       plugins:{
         legend:{display:false},
         datalabels:{display:true},
@@ -2923,16 +2953,26 @@ function renderKioskTrendChart(){
               if(ctx.datasetIndex!==0)return` ${ctx.dataset.label}`;
               const p=pcts[ctx.dataIndex];
               if(p===null)return' Nessun dato';
-              const tag=p<=OUTLIER?' ⚠ OUTLIER':p>=TOP?' ⭐ TOP':p>=OK?' ✓ OK':' ✗ sotto soglia';
+              const tag=p<=30?' ⚠ OUTLIER':p>74.5?' ⭐ TOP':p>54.5?' ✓ OK':' ✗ sotto soglia';
               return` Kiosk%: ${p.toFixed(1)}%${tag}`;
             }
           }
         }
       },
       scales:{
-        x:{grid:{color:gridColor},ticks:{color:tickColor,font:{size:10},maxTicksLimit:14,maxRotation:45}},
-        y:{grid:{color:gridColor},ticks:{color:tickColor,font:{size:11},callback:v=>v+'%'},min:0,suggestedMax:100,
-           afterDataLimits:scale=>{scale.max=Math.max(scale.max,80);}}
+        x:{
+          grid:{display:false},
+          ticks:{color:tickColor,font:{size:9},maxTicksLimit:gran==='month'?31:16,maxRotation:45}
+        },
+        y:{
+          grid:{color:gridColor},
+          ticks:{color:tickColor,font:{size:11},callback:v=>v+'%'},
+          min:0,max:100,
+          afterDataLimits:scale=>{
+            const vals=pcts.filter(p=>p!==null);
+            if(vals.length){scale.max=Math.min(100,Math.max(85,Math.max(...vals)+8));}
+          }
+        }
       }
     }
   });
@@ -3262,5 +3302,27 @@ function updateRefreshChip(){
 #supa-modal input:focus{border-color:#3ECF8E;}
 </style>
 
+<!-- STATUS BAR — fixed bottom footer, never overlaps header -->
+<div id="status-bar" style="
+  position:fixed;bottom:0;left:0;right:0;z-index:50;
+  display:flex;align-items:center;gap:12px;flex-wrap:nowrap;
+  padding:5px 20px;
+  background:var(--surface);border-top:1px solid var(--border);
+  font-size:11px;color:var(--text3);font-family:var(--font);
+  overflow:hidden;
+">
+  <span style="display:flex;align-items:center;gap:5px;flex-shrink:0;"><div class="status-bar-live"></div><strong style="color:var(--text2);">Live</strong></span>
+  <div class="status-bar-dot"></div>
+  <span style="flex-shrink:0;">v<strong id="sb-version"></strong></span>
+  <div class="status-bar-dot"></div>
+  <span style="flex-shrink:0;white-space:nowrap;">Agg. <strong id="sb-updated"></strong></span>
+  <div class="status-bar-dot"></div>
+  <span style="flex-shrink:0;white-space:nowrap;">Ultimo: <strong id="sb-last-access">—</strong></span>
+  <div class="status-bar-dot"></div>
+  <span id="sb-db-status" style="flex-shrink:0;">● DB offline</span>
+  <span style="margin-left:auto;display:flex;gap:6px;align-items:center;flex-shrink:0;">
+    <button class="btn-backup" onclick="openLogPanel()" style="font-size:11px;padding:3px 9px;min-height:22px;" title="Log accessi (admin)">📋 Log</button>
+  </span>
+</div>
 </body>
 </html>
