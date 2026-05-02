@@ -471,7 +471,7 @@ input,select,td,th,.btn,.tab-btn{transition:background .25s,border-color .25s,co
 .log-panel{
   position:fixed;top:0;right:-420px;width:400px;height:100vh;
   background:var(--card);border-left:1px solid var(--border);
-  z-index:500;transition:right .3s ease;display:flex;flex-direction:column;
+  z-index:490;transition:right .3s ease;display:flex;flex-direction:column;
   box-shadow:-4px 0 24px rgba(0,0,0,.15);
 }
 .log-panel.open{right:0;}
@@ -585,7 +585,7 @@ input,select,td,th,.btn,.tab-btn{transition:background .25s,border-color .25s,co
     <div class="empty"><div class="empty-text">Nessun accesso registrato.</div></div>
   </div>
 </div>
-<div id="log-overlay" style="display:none;position:fixed;inset:0;z-index:499;" onclick="closeLogPanel()"></div>
+<div id="log-overlay" style="display:none;position:fixed;inset:0;z-index:489;pointer-events:none;" onclick="closeLogPanel()"></div>
 
 <!-- Mobile nav -->
 <div class="mobile-nav" id="mobile-nav">
@@ -1171,11 +1171,13 @@ async function logAccess(action,detail){
 function openLogPanel(){
   renderLogPanel();
   document.getElementById('log-panel').classList.add('open');
-  document.getElementById('log-overlay').style.display='block';
+  const ov=document.getElementById('log-overlay');
+  ov.style.display='block';ov.style.pointerEvents='auto';
 }
 function closeLogPanel(){
   document.getElementById('log-panel').classList.remove('open');
-  document.getElementById('log-overlay').style.display='none';
+  const ov=document.getElementById('log-overlay');
+  ov.style.display='none';ov.style.pointerEvents='none';
 }
 function renderLogPanel(){
   const log=getLog().slice().reverse();
