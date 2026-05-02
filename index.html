@@ -1356,11 +1356,14 @@ function renderDashboard(){
     const ytdRatio=ratioStr(ytd.bags,ytd.flights);const mRatio=ratioStr(month.bags,month.flights);const dRatio=ta.flights>0?ratioStr(ta.bags,ta.flights):'—';const qRatio=ratioStr(qData.bags,qData.flights);
     // Weekly KPI (only days with bags, up to today)
     const wk=getWeeklyKPI();const wd=wk.bags-wk.flights;const wp=pn(wk.bags,wk.flights);const wRatio=ratioStr(wk.bags,wk.flights);
+    // Week date range label: Thu → Wed
+    const wkStart=gwk(today);const wkEnd=new Date(wkStart+'T00:00:00');wkEnd.setDate(wkEnd.getDate()+6);
+    const wkLabel=pad(new Date(wkStart+'T00:00:00').getDate())+'/'+pad(new Date(wkStart+'T00:00:00').getMonth()+1)+' → '+pad(wkEnd.getDate())+'/'+pad(wkEnd.getMonth()+1);
     kpiHtml=`
 <div class="kpi-card ${dc(yd)}"><div class="kpi-label">Totale YTD ${year}</div><div class="kpi-main"><div class="kpi-value mono">${ytd.bags.toLocaleString('it')}</div><div class="kpi-unit">bag</div></div><div class="kpi-row"><div class="kpi-sub">su ${ytd.flights.toLocaleString('it')} voli</div><div class="kpi-delta ${dc(yd)}">${ds(yd)}${yd}</div></div><div class="kpi-progress"><div class="kpi-progress-bar" style="width:${Math.min(yp,100)}%;background:${bc(yp)};"></div></div><div class="kpi-missing">Ratio: <strong style="color:${bc(yp)}">${ytdRatio}</strong> &nbsp;|&nbsp; ${yp>=100?'<span style="color:var(--green)">✓ TARGET</span>':'mancano <span style="color:var(--red);font-weight:600;">'+Math.max(0,ytd.flights-ytd.bags)+'</span> bag'}</div></div>
 <div class="kpi-card ${dc(qd)}"><div class="kpi-label">Q${cq} ${year}</div><div class="kpi-main"><div class="kpi-value mono">${qData.bags.toLocaleString('it')}</div><div class="kpi-unit">bag</div></div><div class="kpi-row"><div class="kpi-sub">su ${qData.flights.toLocaleString('it')} voli · ${qData.days}gg</div><div class="kpi-delta ${dc(qd)}">${ds(qd)}${qd}</div></div><div class="kpi-progress"><div class="kpi-progress-bar" style="width:${Math.min(qp,100)}%;background:${bc(qp)};"></div></div><div class="kpi-missing">Ratio: <strong style="color:${bc(qp)}">${qRatio}</strong> &nbsp;|&nbsp; ${qp>=100?'<span style="color:var(--green)">✓ TARGET Q</span>':'mancano <span style="color:var(--red);font-weight:600;">'+Math.max(0,qData.flights-qData.bags)+'</span> bag'}</div></div>
 <div class="kpi-card ${dc(md)}"><div class="kpi-label">Mese — ${mkfull(mk)}</div><div class="kpi-main"><div class="kpi-value mono">${month.bags.toLocaleString('it')}</div><div class="kpi-unit">bag</div></div><div class="kpi-row"><div class="kpi-sub">su ${month.flights} voli · ${mEntries.length}gg</div><div class="kpi-delta ${dc(md)}">${ds(md)}${md}</div></div><div class="kpi-progress"><div class="kpi-progress-bar" style="width:${Math.min(mp,100)}%;background:${bc(mp)};"></div></div><div class="kpi-missing">Ratio: <strong style="color:${bc(mp)}">${mRatio}</strong> &nbsp;|&nbsp; vs prec.: <strong style="color:${mvp>=0?'var(--green)':'var(--red)'}">${ds(mvp)}${mvp}</strong></div></div>
-<div class="kpi-card ${wk.flights===0?'blue':dc(wd)}"><div class="kpi-label">Settimana corrente <span style="font-size:.68rem;font-weight:400;color:var(--text3);">(solo giorni con dati)</span></div><div class="kpi-main"><div class="kpi-value mono">${wk.bags}</div><div class="kpi-unit">bag</div></div><div class="kpi-row"><div class="kpi-sub">su ${wk.flights} voli · ${wk.daysWithBags}gg con dati</div><div class="kpi-delta ${dc(wd)}">${wk.flights>0?ds(wd)+wd:'—'}</div></div><div class="kpi-progress"><div class="kpi-progress-bar" style="width:${Math.min(wp,100)}%;background:${bc(wp)};"></div></div><div class="kpi-missing">Ratio: <strong style="color:${bc(wp)}">${wRatio}</strong> &nbsp;|&nbsp; ${wp>=100?'<span style="color:var(--green)">✓ TARGET</span>':wk.flights>0?'mancano <span style="color:var(--red);">'+Math.max(0,wk.flights-wk.bags)+'</span>':'Inserisci i dati'}</div></div>
+<div class="kpi-card ${wk.flights===0?'blue':dc(wd)}"><div class="kpi-label">Settimana &nbsp;<span style="font-weight:400;color:var(--text3);">${wkLabel}</span></div><div class="kpi-main"><div class="kpi-value mono" style="color:${bc(wp)};">${wRatio}</div><div class="kpi-unit" style="font-size:.8rem;color:var(--text2);">ratio</div></div><div class="kpi-row"><div class="kpi-sub">${wk.bags} bag su ${wk.flights} voli</div><div class="kpi-delta ${dc(wd)}">${wk.flights>0?ds(wd)+wd:'—'}</div></div><div class="kpi-progress"><div class="kpi-progress-bar" style="width:${Math.min(wp,100)}%;background:${bc(wp)};"></div></div><div class="kpi-missing">${wp>=100?'<span style="color:var(--green)">✓ TARGET</span>':wk.flights>0?'mancano <span style="color:var(--red);">'+Math.max(0,wk.flights-wk.bags)+'</span>':'Inserisci i dati'} &nbsp;<span style="color:var(--green);font-weight:500;">↗ progressive</span></div></div>
 <div class="kpi-card ${ta.flights===0?'blue':dc(dd)}"><div class="kpi-label">Oggi — ${fmtDate(today)}</div><div class="kpi-main"><div class="kpi-value mono">${ta.bags}</div><div class="kpi-unit">bag</div></div><div class="kpi-row"><div class="kpi-sub">su ${ta.flights} voli · target: ${ta.flights}</div>${ta.flights>0?`<div class="kpi-delta ${dc(dd)}">${ds(dd)}${dd}</div>`:'<div class="kpi-delta neu">—</div>'}</div><div class="kpi-progress"><div class="kpi-progress-bar" style="width:${Math.min(dp,100)}%;background:${bc(dp)};"></div></div><div class="kpi-missing">${ta.flights===0?'Inserisci dati in <em>Operativo Giornaliero</em>':tm===0?'<span style="color:var(--green)">✓ TARGET RAGGIUNTO</span>':'Ratio: <strong style="color:'+bc(dp)+'">'+dRatio+'</strong> &nbsp;|&nbsp; mancano <span style="color:var(--red);font-weight:600;">'+tm+'</span>'}</div></div>`;
   } else if(_dashPeriodFilter.startsWith('Q')){
     const q=parseInt(_dashPeriodFilter[1]);
@@ -1486,14 +1489,14 @@ function renderKioskDashKPIs(){
   const ytdK=getKioskYTD();
   const dayK=getKioskDay(today);
   const monK=getKioskMonth(mk);
-  const pctColor=p=>p>=80?'var(--green)':p>=60?'var(--accent)':'var(--red)';
+  // Use the global kioskPctColor (≥75% blue, >54.5% green, else red)
   const kpiHtml=(label,pct,sub,extra)=>`
     <div class="kpi-card ${kioskCardClass(pct)}" style="position:relative;overflow:hidden;">
       <div class="kpi-label">${label}</div>
-      <div class="kpi-main"><div class="kpi-value" style="color:${pctColor(pct)};">${pct>0?pct.toFixed(1)+'%':'—'}</div></div>
+      <div class="kpi-main"><div class="kpi-value" style="color:${kioskPctColor(pct)};">${pct>0?pct.toFixed(1)+'%':'—'}</div></div>
       <div class="kpi-sub" style="margin-top:4px;">${sub}</div>
       ${extra||''}
-      <div class="kpi-progress" style="margin-top:10px;"><div class="kpi-progress-bar" style="width:${Math.min(pct,100)}%;background:${pctColor(pct)};"></div></div>
+      <div class="kpi-progress" style="margin-top:10px;"><div class="kpi-progress-bar" style="width:${Math.min(pct,100)}%;background:${kioskPctColor(pct)};"></div></div>
     </div>`;
   const el=document.getElementById('dash-kiosk-kpis');
   if(!el)return;
@@ -2337,7 +2340,7 @@ function renderYTD(){
 
   // ── Kiosk YTD KPIs strip ──────────────────────────────────────────────────
   const kytd=getKioskYTD();
-  const kpcc=p=>p>=80?'var(--green)':p>=60?'var(--accent)':'var(--red)';
+  const kpcc=p=>kioskPctColor(p);
   const kEl=document.getElementById('ytd-kiosk-kpis');
   if(kEl&&kytd.days>0){
     const qs=[1,2,3,4].map(q=>{const qd=getKioskQ(q);const ic=q===currentQ();
