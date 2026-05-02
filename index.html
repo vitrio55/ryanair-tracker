@@ -689,7 +689,7 @@ input,select,td,th,.btn,.tab-btn{transition:background .25s,border-color .25s,co
         <div class="table-card-title" id="flight-date-label">Seleziona una data</div><button class="collapse-btn" onclick="toggleTable('tbl-flights')" title="Comprimi/Espandi">▼</button>
         <div class="daily-totals" id="daily-totals"></div>
       </div>
-      <button class="btn btn-primary btn-sm" id="btn-save-all" style="display:none;"></button>
+      <button class="btn btn-primary btn-sm" id="btn-save-all" onclick="saveAllBags()" style="display:none;gap:6px;align-items:center;">💾 Salva</button>
     </div>
     <div class="scroll-x">
       <table>
@@ -1247,6 +1247,28 @@ function getAgg(){
   return Object.fromEntries(Object.entries(data).map(([d,f])=>{const t=dayTot(f);return[d,{flights:t.n,bags:t.bags}];}));
 }
 function getYTD(){return Object.entries(getAgg()).filter(([k])=>k.startsWith(String(cy()))).reduce((a,[,v])=>({flights:a.flights+v.flights,bags:a.bags+v.bags}),{flights:0,bags:0});}
+function getWeeklyKPI(){
+  // Current week (Thu→Wed), only days up to today with at least 1 bag entered
+  const today=ts();const wkStart=gwk(today);
+  const data=gd();
+  let flights=0,bags=0,days=0,daysWithBags=0;
+  Object.entries(data).forEach(([d,fl])=>{
+    if(d<wkStart||d>today)return; // only this week up to today
+    const hasBags=fl.some(f=>f.bags!==null&&f.bags!==undefined&&f.bags!=='');
+    const dayF=fl.length;
+    const dayB=fl.reduce((s,f)=>s+(f.bags!==null&&f.bags!==undefined&&f.bags!==''?+f.bags:0),0);
+    flights+=dayF;bags+=dayB;days++;
+    if(hasBags)daysWithBags++;
+  });
+  // For ratio: only count flights from days that have at least 1 bag
+  let flightsWithBags=0;
+  Object.entries(data).forEach(([d,fl])=>{
+    if(d<wkStart||d>today)return;
+    const hasBags=fl.some(f=>f.bags!==null&&f.bags!==undefined&&f.bags!=='');
+    if(hasBags)flightsWithBags+=fl.length;
+  });
+  return{flights:flightsWithBags,bags,days,daysWithBags,totalDays:days};
+}
 function getMagg(){
   const a=getAgg();const months={};
   Object.entries(a).filter(([k])=>k.startsWith(String(cy()))).forEach(([d,v])=>{const mk=gmk(d);if(!months[mk])months[mk]={flights:0,bags:0,days:0};months[mk].flights+=v.flights;months[mk].bags+=v.bags;months[mk].days++;});
@@ -1332,10 +1354,13 @@ function renderDashboard(){
     const mvp=month.bags-pm.bags;const tm=Math.max(0,ta.flights-ta.bags);
     const yp=pn(ytd.bags,ytd.flights);const mp=pn(month.bags,month.flights);const dp=pn(ta.bags,ta.flights);const qp=pn(qData.bags,qData.flights);
     const ytdRatio=ratioStr(ytd.bags,ytd.flights);const mRatio=ratioStr(month.bags,month.flights);const dRatio=ta.flights>0?ratioStr(ta.bags,ta.flights):'—';const qRatio=ratioStr(qData.bags,qData.flights);
+    // Weekly KPI (only days with bags, up to today)
+    const wk=getWeeklyKPI();const wd=wk.bags-wk.flights;const wp=pn(wk.bags,wk.flights);const wRatio=ratioStr(wk.bags,wk.flights);
     kpiHtml=`
 <div class="kpi-card ${dc(yd)}"><div class="kpi-label">Totale YTD ${year}</div><div class="kpi-main"><div class="kpi-value mono">${ytd.bags.toLocaleString('it')}</div><div class="kpi-unit">bag</div></div><div class="kpi-row"><div class="kpi-sub">su ${ytd.flights.toLocaleString('it')} voli</div><div class="kpi-delta ${dc(yd)}">${ds(yd)}${yd}</div></div><div class="kpi-progress"><div class="kpi-progress-bar" style="width:${Math.min(yp,100)}%;background:${bc(yp)};"></div></div><div class="kpi-missing">Ratio: <strong style="color:${bc(yp)}">${ytdRatio}</strong> &nbsp;|&nbsp; ${yp>=100?'<span style="color:var(--green)">✓ TARGET</span>':'mancano <span style="color:var(--red);font-weight:600;">'+Math.max(0,ytd.flights-ytd.bags)+'</span> bag'}</div></div>
 <div class="kpi-card ${dc(qd)}"><div class="kpi-label">Q${cq} ${year}</div><div class="kpi-main"><div class="kpi-value mono">${qData.bags.toLocaleString('it')}</div><div class="kpi-unit">bag</div></div><div class="kpi-row"><div class="kpi-sub">su ${qData.flights.toLocaleString('it')} voli · ${qData.days}gg</div><div class="kpi-delta ${dc(qd)}">${ds(qd)}${qd}</div></div><div class="kpi-progress"><div class="kpi-progress-bar" style="width:${Math.min(qp,100)}%;background:${bc(qp)};"></div></div><div class="kpi-missing">Ratio: <strong style="color:${bc(qp)}">${qRatio}</strong> &nbsp;|&nbsp; ${qp>=100?'<span style="color:var(--green)">✓ TARGET Q</span>':'mancano <span style="color:var(--red);font-weight:600;">'+Math.max(0,qData.flights-qData.bags)+'</span> bag'}</div></div>
 <div class="kpi-card ${dc(md)}"><div class="kpi-label">Mese — ${mkfull(mk)}</div><div class="kpi-main"><div class="kpi-value mono">${month.bags.toLocaleString('it')}</div><div class="kpi-unit">bag</div></div><div class="kpi-row"><div class="kpi-sub">su ${month.flights} voli · ${mEntries.length}gg</div><div class="kpi-delta ${dc(md)}">${ds(md)}${md}</div></div><div class="kpi-progress"><div class="kpi-progress-bar" style="width:${Math.min(mp,100)}%;background:${bc(mp)};"></div></div><div class="kpi-missing">Ratio: <strong style="color:${bc(mp)}">${mRatio}</strong> &nbsp;|&nbsp; vs prec.: <strong style="color:${mvp>=0?'var(--green)':'var(--red)'}">${ds(mvp)}${mvp}</strong></div></div>
+<div class="kpi-card ${wk.flights===0?'blue':dc(wd)}"><div class="kpi-label">Settimana corrente <span style="font-size:.68rem;font-weight:400;color:var(--text3);">(solo giorni con dati)</span></div><div class="kpi-main"><div class="kpi-value mono">${wk.bags}</div><div class="kpi-unit">bag</div></div><div class="kpi-row"><div class="kpi-sub">su ${wk.flights} voli · ${wk.daysWithBags}gg con dati</div><div class="kpi-delta ${dc(wd)}">${wk.flights>0?ds(wd)+wd:'—'}</div></div><div class="kpi-progress"><div class="kpi-progress-bar" style="width:${Math.min(wp,100)}%;background:${bc(wp)};"></div></div><div class="kpi-missing">Ratio: <strong style="color:${bc(wp)}">${wRatio}</strong> &nbsp;|&nbsp; ${wp>=100?'<span style="color:var(--green)">✓ TARGET</span>':wk.flights>0?'mancano <span style="color:var(--red);">'+Math.max(0,wk.flights-wk.bags)+'</span>':'Inserisci i dati'}</div></div>
 <div class="kpi-card ${ta.flights===0?'blue':dc(dd)}"><div class="kpi-label">Oggi — ${fmtDate(today)}</div><div class="kpi-main"><div class="kpi-value mono">${ta.bags}</div><div class="kpi-unit">bag</div></div><div class="kpi-row"><div class="kpi-sub">su ${ta.flights} voli · target: ${ta.flights}</div>${ta.flights>0?`<div class="kpi-delta ${dc(dd)}">${ds(dd)}${dd}</div>`:'<div class="kpi-delta neu">—</div>'}</div><div class="kpi-progress"><div class="kpi-progress-bar" style="width:${Math.min(dp,100)}%;background:${bc(dp)};"></div></div><div class="kpi-missing">${ta.flights===0?'Inserisci dati in <em>Operativo Giornaliero</em>':tm===0?'<span style="color:var(--green)">✓ TARGET RAGGIUNTO</span>':'Ratio: <strong style="color:'+bc(dp)+'">'+dRatio+'</strong> &nbsp;|&nbsp; mancano <span style="color:var(--red);font-weight:600;">'+tm+'</span>'}</div></div>`;
   } else if(_dashPeriodFilter.startsWith('Q')){
     const q=parseInt(_dashPeriodFilter[1]);
@@ -1487,46 +1512,80 @@ function renderKioskDashKPIs(){
 
 // =================== TOP DESTINATIONS ===================
 let _tdScope='ytd';
+let _tdDestFilter=''; // empty = top 3, else specific IATA
+
+function getAllDests(scope){
+  const data=gd();const year=cy();const today=ts();const mk=cmk();
+  const map={};
+  Object.entries(data).forEach(([d,flights])=>{
+    if(scope==='ytd'&&!d.startsWith(String(year)))return;
+    if(scope==='month'&&!d.startsWith(mk))return;
+    if(scope==='today'&&d!==today)return;
+    flights.forEach(f=>{
+      if(!f.to||f.to==='—')return;
+      if(!map[f.to])map[f.to]={to:f.to,bags:0,ops:0};
+      map[f.to].ops++;
+      map[f.to].bags+=f.bags!==null&&f.bags!==undefined&&f.bags!==''?+f.bags:0;
+    });
+  });
+  return Object.values(map).sort((a,b)=>b.bags-a.bags);
+}
+
 function renderTopDest(scope){
   _tdScope=scope||_tdScope;
-  const top=getTopDest(3,_tdScope);
-  const maxBags=top.length?top[0].bags:1;
+  const allDests=getAllDests(_tdScope);
   const medals=['🥇','🥈','🥉'];
-  const iataColors=['rank1','rank2','rank3'];
   const barColors=['#FFD100','#8a96b0','#a0785a'];
   const scopeLabel={ytd:'YTD '+cy(),month:'Mese corrente',today:'Oggi'};
 
+  // Build display list: top 3 or filtered dest
+  let displayList=_tdDestFilter?allDests.filter(d=>d.to===_tdDestFilter):allDests.slice(0,3);
+  const maxBags=displayList.length?Math.max(1,displayList[0].bags):1;
+
   let cards='';
-  if(!top.length){
+  if(!displayList.length){
     cards=`<div style="color:var(--text3);font-size:.9rem;padding:.5rem 0;">Nessun dato disponibile per questo periodo.</div>`;
   } else {
-    top.forEach((d,i)=>{
+    displayList.forEach((d,i)=>{
       const pct=Math.round(d.bags/maxBags*100);
+      const ratio=d.ops>0?ratioStr(d.bags,d.ops):'—';
+      const iataClass=_tdDestFilter?'rank1':['rank1','rank2','rank3'][i]||'';
+      const barCol=_tdDestFilter?'var(--accent)':barColors[i]||'var(--border2)';
       cards+=`
       <div class="dest-item">
-        <div class="dest-rank">${medals[i]||'#'+(i+1)}</div>
-        <div class="dest-iata ${iataColors[i]||''}">${d.to}</div>
+        <div class="dest-rank">${_tdDestFilter?'📍':medals[i]||'#'+(i+1)}</div>
+        <div class="dest-iata ${iataClass}">${d.to}</div>
         <div class="dest-bags">${d.bags} <span style="font-size:.78rem;font-weight:400;color:var(--text3);">bag</span></div>
         <div class="dest-meta">
           <span>${d.ops} voli</span>
-          <span style="color:${bc(Math.round(parseFloat(d.ratio.replace(',','.'))*100))};">ratio ${d.ratio}</span>
+          <span style="color:${bc(Math.round(parseFloat(ratio.replace(',','.'))*100))};">ratio ${ratio}</span>
         </div>
-        <div class="dest-bar"><div class="dest-bar-fill" style="width:${pct}%;background:${barColors[i]||'var(--border2)'}"></div></div>
+        <div class="dest-bar"><div class="dest-bar-fill" style="width:${pct}%;background:${barCol}"></div></div>
       </div>`;
     });
   }
 
+  // Build destination selector options
+  const destOptions=allDests.map(d=>`<option value="${d.to}" ${_tdDestFilter===d.to?'selected':''}>${d.to} (${d.bags} bag)</option>`).join('');
+
   document.getElementById('dash-topdest').innerHTML=`
   <div class="topdest-card">
     <div class="topdest-header">
-      <div class="topdest-title">Top 3 Destinazioni per Bagagli &nbsp;<span style="color:var(--text3);font-weight:400;font-size:.78rem;">${scopeLabel[_tdScope]}</span></div>
-      <div class="scope-tabs">
-        <button class="scope-tab ${_tdScope==='ytd'?'active':''}" onclick="renderTopDest('ytd')">YTD</button>
-        <button class="scope-tab ${_tdScope==='month'?'active':''}" onclick="renderTopDest('month')">Mese</button>
-        <button class="scope-tab ${_tdScope==='today'?'active':''}" onclick="renderTopDest('today')">Oggi</button>
+      <div class="topdest-title">${_tdDestFilter?'Destinazione: <strong>'+_tdDestFilter+'</strong>':'Top 3 Destinazioni per Bagagli'} &nbsp;<span style="color:var(--text3);font-weight:400;font-size:.78rem;">${scopeLabel[_tdScope]}</span></div>
+      <div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap;">
+        <div class="scope-tabs">
+          <button class="scope-tab ${_tdScope==='ytd'?'active':''}" onclick="renderTopDest('ytd')">YTD</button>
+          <button class="scope-tab ${_tdScope==='month'?'active':''}" onclick="renderTopDest('month')">Mese</button>
+          <button class="scope-tab ${_tdScope==='today'?'active':''}" onclick="renderTopDest('today')">Oggi</button>
+        </div>
+        <select onchange="_tdDestFilter=this.value;renderTopDest()" style="padding:4px 8px;font-size:12px;border-radius:6px;background:var(--surface);border:1px solid var(--border);color:var(--text);min-height:28px;cursor:pointer;max-width:180px;">
+          <option value="">Top 3</option>
+          ${destOptions}
+        </select>
+        ${_tdDestFilter?`<button class="btn btn-secondary btn-xs" onclick="_tdDestFilter='';renderTopDest()">✕</button>`:''}
       </div>
     </div>
-    <div class="topdest-grid">${cards}</div>
+    <div class="topdest-grid" style="${displayList.length===1?'grid-template-columns:1fr 1fr 1fr;':''}">${cards}</div>
   </div>`;
 }
 
@@ -1562,10 +1621,49 @@ function renderFT(){
   const ft=document.getElementById('flights-foot');ft.style.display='';
   ft.innerHTML=`<td colspan="4">TOTALE GIORNO</td><td class="right mono">${tt.booked.toLocaleString('it')}</td><td class="right mono">${tt.bags}</td><td class="right mono">${tt.n}</td><td class="right mono"><span class="badge ${dc(td)}">${ds(td)}${td}</span></td><td class="right mono" style="color:${bc(tp)}">${tp}%</td><td></td>`;
 }
+// Unsaved changes tracker
+let _unsavedChanges=false;
+function setUnsaved(val){
+  _unsavedChanges=val;
+  const btn=document.getElementById('btn-save-all');
+  if(btn){
+    if(val){
+      btn.style.background='var(--red)';btn.style.color='#fff';
+      btn.innerHTML='💾 Salva ora <span style="font-size:.7rem;opacity:.8;margin-left:4px;">● non salvato</span>';
+      btn.style.display='inline-flex';
+    } else {
+      btn.style.background='';btn.style.color='';
+      btn.innerHTML='✓ Salvato';
+      setTimeout(()=>{btn.innerHTML='💾 Salva';},2000);
+    }
+  }
+}
+window.addEventListener('beforeunload',e=>{
+  if(_unsavedChanges){
+    e.preventDefault();
+    e.returnValue='Hai modifiche non salvate. Se esci perderai i dati inseriti.';
+    return e.returnValue;
+  }
+});
+
+function updateLiveTotals(){
+  const flights=Array.from(document.querySelectorAll('[id^="bi-"]')).map((inp,i)=>{
+    const b=inp.value.trim();return b===''?null:+b;
+  });
+  const bkd=Array.from(document.querySelectorAll('[id^="bk-"]')).map(inp=>parseInt(inp.value)||0);
+  const n=flights.length;
+  const bags=flights.reduce((s,b)=>s+(b!==null?b:0),0);
+  const booked=bkd.reduce((s,b)=>s+b,0);
+  const td=bags-n;const tp=pn(bags,n);
+  const totEl=document.getElementById('daily-totals');
+  if(totEl)totEl.innerHTML=`<div class="dtot">Voli: <strong>${n}</strong></div><div class="dtot">Booked: <strong>${booked.toLocaleString('it')}</strong></div><div class="dtot">Bagagli: <strong style="color:${bc(tp)};">${bags}</strong></div><div class="dtot">Target: <strong>${n}</strong></div><div class="dtot">Delta: <span class="badge ${dc(td)}">${ds(td)}${td}</span></div><div class="dtot">Ratio: <strong style="color:${bc(tp)}">${n>0?ratioStr(bags,n):'—'}</strong></div>`;
+  const ft=document.getElementById('flights-foot');
+  if(ft&&ft.style.display!=='none')ft.innerHTML=`<td colspan="4">TOTALE GIORNO</td><td class="right mono">${booked.toLocaleString('it')}</td><td class="right mono" style="color:${bc(tp)};font-weight:700;">${bags}</td><td class="right mono">${n}</td><td class="right mono"><span class="badge ${dc(td)}">${ds(td)}${td}</span></td><td class="right mono" style="color:${bc(tp)}">${tp}%</td><td></td>`;
+}
+
 let _bagTimer=null;
 function liveUpd(i){
   const v=parseInt(document.getElementById('bi-'+i).value);
-  // Update delta/pct cells immediately
   if(!isNaN(v)&&v>=0){
     const d=v-1;
     document.getElementById('bd-'+i).innerHTML=`<span class="badge ${dc(d)}">${ds(d)}${d}</span>`;
@@ -1575,7 +1673,10 @@ function liveUpd(i){
     document.getElementById('bd-'+i).innerHTML=`<span class="badge neu">—</span>`;
     document.getElementById('bp-'+i).textContent='—';
   }
-  // Auto-save debounced 800ms after last keystroke
+  // Real-time totals
+  updateLiveTotals();
+  setUnsaved(true);
+  // Auto-save debounced 1200ms
   clearTimeout(_bagTimer);
   _bagTimer=setTimeout(()=>{
     const data=gd();const flights=data[curDate]||[];
@@ -1584,11 +1685,13 @@ function liveUpd(i){
       if(inp){const val=inp.value.trim();f.bags=val===''?null:+val;}
     });
     data[curDate]=flights;sd(data);sdDate(curDate);
+    setUnsaved(false);
     renderHistory();
-  },800);
+  },1200);
 }
 function liveUpdBooked(i){
-  // Debounced save of booked values, then refresh totals
+  updateLiveTotals();
+  setUnsaved(true);
   clearTimeout(_bagTimer);
   _bagTimer=setTimeout(()=>{
     const data=gd();const flights=data[curDate]||[];
@@ -1599,12 +1702,9 @@ function liveUpdBooked(i){
       if(inp){const val=inp.value.trim();f.bags=val===''?null:+val;}
     });
     data[curDate]=flights;sd(data);sdDate(curDate);
-    const tt=dayTot(flights);const td=tt.bags-tt.n;const tp=pn(tt.bags,tt.n);
-    document.getElementById('daily-totals').innerHTML=`<div class="dtot">Voli: <strong>${tt.n}</strong></div><div class="dtot">Booked: <strong>${tt.booked.toLocaleString('it')}</strong></div><div class="dtot">Bagagli: <strong>${tt.bags}</strong></div><div class="dtot">Target: <strong>${tt.n}</strong></div><div class="dtot">Delta: <span class="badge ${dc(td)}">${ds(td)}${td}</span></div><div class="dtot">%: <strong style="color:${bc(tp)}">${tp}%</strong></div>`;
-    const ft=document.getElementById('flights-foot');
-    if(ft&&ft.style.display!=='none')ft.innerHTML=`<td colspan="4">TOTALE GIORNO</td><td class="right mono">${tt.booked.toLocaleString('it')}</td><td class="right mono">${tt.bags}</td><td class="right mono">${tt.n}</td><td class="right mono"><span class="badge ${dc(td)}">${ds(td)}${td}</span></td><td class="right mono" style="color:${bc(tp)}">${tp}%</td><td></td>`;
+    setUnsaved(false);
     renderHistory();
-  },800);
+  },1200);
 }
 function saveAllBags(){
   const data=gd();const flights=data[curDate]||[];
@@ -1613,7 +1713,8 @@ function saveAllBags(){
     const inp=document.getElementById('bi-'+i);if(inp){const v=inp.value.trim();f.bags=v===''?null:+v;}
   });
   data[curDate]=flights;sd(data);sdDate(curDate);
-  showSt('ok','Bagagli salvati per il '+fmtDate(curDate)+'.');
+  setUnsaved(false);
+  showSt('ok','✓ Bagagli salvati per il '+fmtDate(curDate)+'.');
   renderFT();renderHistory();
 }
 function delFlight(i){
@@ -2294,7 +2395,7 @@ async function navigate(view){
     }catch(e){}
   }
   logAccess('navigate',view);
-  if(view==='dashboard')renderDashboard();
+  if(view==='dashboard'){_unsavedChanges=false;renderDashboard();}
   else if(view==='registrazione'){
     const today=ts();
     document.getElementById('inp-date').value=today;curDate=today;
@@ -2652,17 +2753,17 @@ document.getElementById('email-modal').addEventListener('click',function(e){if(e
 function kioskPct(kiosk,total){return total>0?parseFloat((kiosk/total*100).toFixed(1)):0;}
 function kioskPctStr(kiosk,total){return total>0?(kiosk/total*100).toFixed(1)+'%':'—';}
 function kioskPctColor(pct){
-  if(pct>74.5)return'var(--accent)';  // blu — top
-  if(pct>54.5)return'var(--green)';   // verde — ok
-  return'var(--red)';                  // rosso — sotto soglia
+  if(pct>=75)return'var(--accent)';  // blu — top (≥75%)
+  if(pct>54.5)return'var(--green)';  // verde — ok (54.6-74.9%)
+  return'var(--red)';                  // rosso — sotto soglia (<54.5%)
 }
 function kioskPctBg(pct){
-  if(pct>74.5)return'var(--blue-bg)';
+  if(pct>=75)return'var(--blue-bg)';
   if(pct>54.5)return'var(--green-bg)';
   return'var(--red-bg)';
 }
 function kioskCardClass(pct){
-  if(pct>74.5)return'blue';
+  if(pct>=75)return'blue';
   if(pct>54.5)return'green';
   return'red';
 }
