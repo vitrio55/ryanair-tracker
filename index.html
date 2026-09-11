@@ -434,6 +434,55 @@ input::-webkit-calendar-picker-indicator{filter:invert(.5);cursor:pointer;}
 .month-chip.active{background:var(--accent);color:#fff;border-color:var(--accent);}
 .month-chip.all{border-color:var(--border2);}
 
+/* ── PERIOD CASCADE (year → month) ───────────────────────────────────────── */
+.period-select{
+  background:var(--card);border:1px solid var(--border);color:var(--text);
+  border-radius:var(--radius-xs);padding:6px 10px;font-size:12px;font-family:var(--font);
+  min-height:30px;cursor:pointer;
+}
+.period-select:focus{border-color:var(--accent);}
+
+/* ── DAY NAVIGATION & SUMMARY ────────────────────────────────────────────── */
+.day-nav-row{display:flex;align-items:flex-start;gap:6px;}
+.day-nav-btn{
+  width:36px;height:36px;border-radius:10px;flex-shrink:0;
+  border:1px solid var(--border);background:var(--surface);
+  color:var(--text2);cursor:pointer;font-size:14px;
+  display:flex;align-items:center;justify-content:center;
+  transition:all var(--transition);
+}
+.day-nav-btn:hover{border-color:var(--accent);color:var(--accent);background:var(--blue-bg);}
+.day-nav-date{display:flex;flex-direction:column;align-items:center;}
+.day-weekday{
+  font-size:11px;font-weight:500;color:var(--text3);text-transform:uppercase;
+  letter-spacing:.04em;margin-top:4px;text-align:center;
+}
+.day-summary-grid{
+  display:grid;grid-template-columns:repeat(7,1fr);gap:8px;
+  margin-top:12px;
+}
+.day-stat{
+  background:var(--surface);border:1px solid var(--border);
+  border-radius:var(--radius);padding:10px 12px;position:relative;overflow:hidden;
+}
+.day-stat::before{content:'';position:absolute;top:0;left:0;right:0;height:2px;border-radius:2px;background:var(--border);}
+.day-stat.accent::before{background:var(--accent);}
+.day-stat-label{font-size:9.5px;font-weight:600;letter-spacing:.05em;text-transform:uppercase;color:var(--text3);margin-bottom:5px;}
+.day-stat-value{font-size:18px;font-weight:600;color:var(--text);font-variant-numeric:tabular-nums;line-height:1;}
+@media(max-width:900px){.day-summary-grid{grid-template-columns:repeat(4,1fr);}}
+@media(max-width:480px){.day-summary-grid{grid-template-columns:repeat(2,1fr);}}
+
+/* ── COMPACT UPLOAD BUTTONS ──────────────────────────────────────────────── */
+.upload-btn{
+  border:1px solid var(--border);border-radius:var(--radius-xs);
+  padding:.5rem .75rem;display:flex;align-items:center;gap:.6rem;
+  cursor:pointer;transition:all .15s;background:var(--surface);
+}
+.upload-btn:hover{border-color:var(--accent);background:var(--blue-bg);}
+.upload-btn .upload-btn-icon{font-size:1rem;line-height:1;flex-shrink:0;opacity:.85;}
+.upload-btn .upload-btn-title{font-family:var(--font);font-size:.76rem;color:var(--text);font-weight:600;margin-bottom:1px;}
+.upload-btn .upload-btn-sub{font-size:.64rem;color:var(--text3);letter-spacing:.01em;}
+
 /* ── MISC ────────────────────────────────────────────────────────────────── */
 .scroll-x{overflow-x:auto;}
 .empty{text-align:center;padding:48px 24px;color:var(--text3);}
@@ -629,10 +678,17 @@ input,select,td,th,.btn,.tab-btn{transition:background .25s,border-color .25s,co
   <div class="page-title">Operativo Giornaliero</div>
   <div class="page-sub">Carica il piano voli FR — da PDF, immagine, Excel o inserimento manuale</div>
 
-  <div style="display:flex;align-items:flex-end;gap:.8rem;flex-wrap:wrap;margin-bottom:.8rem;">
+  <div style="display:flex;align-items:flex-end;gap:.6rem;flex-wrap:wrap;margin-bottom:.8rem;">
     <div class="form-group">
       <label>Data operatività</label>
-      <input type="date" id="inp-date" style="width:185px;" onchange="loadDayFlights();updateDayIndicator()">
+      <div class="day-nav-row">
+        <button class="day-nav-btn" onclick="shiftDay(-1)" title="Giorno precedente (◀)">◀</button>
+        <div class="day-nav-date">
+          <input type="date" id="inp-date" style="width:170px;" onchange="loadDayFlights();updateDayIndicator()">
+          <div class="day-weekday" id="inp-date-weekday"></div>
+        </div>
+        <button class="day-nav-btn" onclick="shiftDay(1)" title="Giorno successivo (▶)">▶</button>
+      </div>
     </div>
     <button class="btn btn-secondary btn-sm" id="btn-goto-today" onclick="goToToday()" style="height:40px;display:none;gap:6px;" title="Torna ad oggi">
       ⬅ Torna a Oggi
@@ -648,30 +704,26 @@ input,select,td,th,.btn,.tab-btn{transition:background .25s,border-color .25s,co
     <!-- Hidden file inputs for all formats -->
     <input type="file" id="upload-any" accept=".pdf,.xlsx,.xls,image/*,application/pdf,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" style="display:none;" onchange="handleFileDrop(this.files[0])">
 
-    <div style="display:flex;gap:.8rem;align-items:stretch;flex-wrap:wrap;margin-bottom:.6rem;">
+    <div style="display:flex;gap:.5rem;align-items:stretch;flex-wrap:wrap;margin-bottom:.6rem;">
       <!-- Single upload button -->
-      <label for="upload-any" style="cursor:pointer;flex:1;min-width:220px;">
-        <div id="upload-drop-zone"
-          style="border:2px dashed var(--border2);border-radius:10px;padding:1rem 1.6rem;display:flex;align-items:center;gap:1rem;transition:all .2s;background:var(--bg);"
-          ondragover="event.preventDefault();document.getElementById('upload-drop-zone').style.borderColor='var(--ry)';document.getElementById('upload-drop-zone').style.background='rgba(255,209,0,.04)'"
+      <label for="upload-any" style="cursor:pointer;flex:0 1 auto;">
+        <div id="upload-drop-zone" class="upload-btn"
+          ondragover="event.preventDefault();document.getElementById('upload-drop-zone').style.borderColor='var(--ry)';document.getElementById('upload-drop-zone').style.background='rgba(255,209,0,.06)'"
           ondragleave="document.getElementById('upload-drop-zone').style.borderColor='';document.getElementById('upload-drop-zone').style.background=''"
           ondrop="event.preventDefault();document.getElementById('upload-drop-zone').style.borderColor='';document.getElementById('upload-drop-zone').style.background='';handleFileDrop(event.dataTransfer.files[0])">
-          <div style="font-size:1.5rem;line-height:1;flex-shrink:0;">📂</div>
+          <div class="upload-btn-icon">📂</div>
           <div>
-            <div style="font-family:var(--font);font-size:.88rem;color:var(--text);font-weight:700;margin-bottom:.2rem;">Carica piano voli</div>
-            <div style="font-size:.72rem;color:var(--text3);letter-spacing:.01em;">PDF · Immagine (JPG/PNG) · Excel (XLSX) &nbsp;—&nbsp; drag &amp; drop o clic</div>
+            <div class="upload-btn-title">Carica piano voli</div>
+            <div class="upload-btn-sub">PDF · Immagine · Excel — drag&nbsp;&amp;&nbsp;drop o clic</div>
           </div>
         </div>
       </label>
       <!-- Paste text button -->
-      <div onclick="openPasteModal()"
-        style="border:2px dashed var(--border2);border-radius:10px;padding:1rem 1.6rem;display:flex;align-items:center;gap:1rem;cursor:pointer;transition:all .2s;background:var(--bg);min-width:180px;"
-        onmouseover="this.style.borderColor='var(--ry)';this.style.background='rgba(255,209,0,.04)'"
-        onmouseout="this.style.borderColor='';this.style.background=''">
-        <div style="font-size:1.5rem;line-height:1;flex-shrink:0;">📋</div>
+      <div class="upload-btn" onclick="openPasteModal()" style="flex:0 1 auto;">
+        <div class="upload-btn-icon">📋</div>
         <div>
-          <div style="font-family:var(--font);font-size:.88rem;color:var(--text);font-weight:700;margin-bottom:.2rem;">Incolla testo</div>
-          <div style="font-size:.72rem;color:var(--text3);">Da email, chat, sistema</div>
+          <div class="upload-btn-title">Incolla testo</div>
+          <div class="upload-btn-sub">Da email, chat, sistema</div>
         </div>
       </div>
     </div>
@@ -1311,12 +1363,20 @@ function getTopDest(n,scope){
 
 // CHARTS
 let mChart=null,pChart=null;
-let _dashPeriodFilter='ytd'; // 'ytd' | 'Q1'..'Q4' | 'YYYY-MM' | 'today'
+let _dashPeriodFilter='month'; // 'ytd' | 'month' (mese corrente) | 'YYYY-MM' (mese specifico) | 'today'
+let _dashCascadeYear=null;     // anno selezionato nel filtro a cascata "altro periodo"
 let _dashChartGran='month';  // 'month' | 'week' | 'quarter'
 function setDashPeriod(p){_dashPeriodFilter=p;renderDashboard();}
+function setDashCascadeYear(y){_dashCascadeYear=y;renderDashboard();}
 function setDashChartGran(g){_dashChartGran=g;renderDashboard();}
 function ratioStr(b,f){return f===0?'—':(b/f).toFixed(3);}
 function ratioIT(b,f){return f===0?'—':(b/f).toFixed(2).replace('.',',');}
+function weeklyKpiCardHtml(today){
+  const wk=getWeeklyKPI();const wd=wk.bags-wk.flights;const wp=pn(wk.bags,wk.flights);const wRatio=ratioStr(wk.bags,wk.flights);
+  const wkStart=gwk(today);const wkEnd=new Date(wkStart+'T00:00:00');wkEnd.setDate(wkEnd.getDate()+6);
+  const wkLabel=pad(new Date(wkStart+'T00:00:00').getDate())+'/'+pad(new Date(wkStart+'T00:00:00').getMonth()+1)+' → '+pad(wkEnd.getDate())+'/'+pad(wkEnd.getMonth()+1);
+  return `<div class="kpi-card ${wk.flights===0?'blue':dc(wd)}"><div class="kpi-label">Settimana &nbsp;<span style="font-weight:400;color:var(--text3);">${wkLabel}</span></div><div class="kpi-main"><div class="kpi-value mono" style="color:${bc(wp)};">${wRatio}</div></div><div class="kpi-row"><div class="kpi-sub">${wk.bags} bag su ${wk.flights} voli</div><div class="kpi-delta ${dc(wd)}">${wk.flights>0?ds(wd)+wd:'—'}</div></div><div class="kpi-progress"><div class="kpi-progress-bar" style="width:${Math.min(wp,100)}%;background:${bc(wp)};"></div></div><div class="kpi-missing">${wp>=100?'<span style="color:var(--green)">✓ TARGET</span>':wk.flights>0?'mancano <span style="color:var(--red);">'+Math.max(0,wk.flights-wk.bags)+'</span>':'Inserisci i dati'} &nbsp;<span style="color:var(--green);font-weight:500;">↗ progressive</span></div></div>`;
+}
 function renderDashboard(){
   const today=ts();const year=cy();const mk=cmk();const cq=currentQ();
   document.getElementById('dash-date').textContent='Aggiornato al '+fmtDate(today)+' — Anno '+year;
@@ -1326,20 +1386,28 @@ function renderDashboard(){
   // ── Period filter bar ────────────────────────────────────────────────────
   const periodBar=document.getElementById('dash-period-bar');
   if(periodBar){
-    const avMonths=[...new Set(Object.keys(agg).filter(d=>d.startsWith(String(year))).map(d=>d.substring(0,7)))].sort();
-    periodBar.innerHTML=`<div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;padding:10px 14px;background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-sm);">
-      <span style="font-size:11px;font-weight:500;letter-spacing:.04em;text-transform:uppercase;color:var(--text3);white-space:nowrap;margin-right:4px;">Periodo KPI</span>
+    const allYears=[...new Set(Object.keys(agg).map(d=>d.substring(0,4)))].sort();
+    if(!allYears.length)allYears.push(String(year));
+    if(!_dashCascadeYear||!allYears.includes(_dashCascadeYear))_dashCascadeYear=allYears[allYears.length-1];
+    const monthsForYear=[...new Set(Object.keys(agg).filter(d=>d.startsWith(_dashCascadeYear)).map(d=>d.substring(0,7)))].sort();
+    periodBar.innerHTML=`<div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;padding:10px 14px;background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-sm);">
+      <span style="font-size:11px;font-weight:500;letter-spacing:.04em;text-transform:uppercase;color:var(--text3);white-space:nowrap;margin-right:2px;">Periodo KPI</span>
       <button class="month-chip ${_dashPeriodFilter==='ytd'?'active':''}" onclick="setDashPeriod('ytd')">YTD</button>
-      <span style="width:1px;height:16px;background:var(--border2);display:inline-block;margin:0 2px;flex-shrink:0;"></span>
-      ${[1,2,3,4].map(q=>`<button class="month-chip ${_dashPeriodFilter==='Q'+q?'active':''}" onclick="setDashPeriod('Q${q}')">Q${q}</button>`).join('')}
-      <span style="width:1px;height:16px;background:var(--border2);display:inline-block;margin:0 2px;flex-shrink:0;"></span>
-      ${avMonths.map(m=>`<button class="month-chip ${_dashPeriodFilter===m?'active':''}" onclick="setDashPeriod('${m}')">${mname(m)}</button>`).join('')}
-      <span style="width:1px;height:16px;background:var(--border2);display:inline-block;margin:0 2px;flex-shrink:0;"></span>
+      <button class="month-chip ${_dashPeriodFilter==='month'?'active':''}" onclick="setDashPeriod('month')">${mname(mk)}</button>
       <button class="month-chip ${_dashPeriodFilter==='today'?'active':''}" onclick="setDashPeriod('today')">Oggi</button>
+      <span style="width:1px;height:16px;background:var(--border2);display:inline-block;margin:0 4px;flex-shrink:0;"></span>
+      <span style="font-size:11px;color:var(--text3);white-space:nowrap;">Altro periodo:</span>
+      <select class="period-select" onchange="setDashCascadeYear(this.value)">
+        ${allYears.map(y=>`<option value="${y}" ${y===_dashCascadeYear?'selected':''}>${y}</option>`).join('')}
+      </select>
+      <select class="period-select" onchange="if(this.value)setDashPeriod(this.value)">
+        <option value="">Mese…</option>
+        ${monthsForYear.map(m=>`<option value="${m}" ${_dashPeriodFilter===m?'selected':''}>${mname(m)}</option>`).join('')}
+      </select>
     </div>`;
   }
 
-  // ── KPI Cards based on selected period ────────────────────────────────────
+  // ── KPI Cards based on selected period (ratio in primo piano, totali in piccolo) ──
   let kpiHtml='';
   if(_dashPeriodFilter==='ytd'){
     const ytd=getYTD();
@@ -1351,44 +1419,28 @@ function renderDashboard(){
     const ta=agg[today]||{flights:0,bags:0};
     const qData=getQagg(cq);
     const yd=ytd.bags-ytd.flights;const md=month.bags-month.flights;const dd=ta.bags-ta.flights;const qd=qData.bags-qData.flights;
-    const mvp=month.bags-pm.bags;const tm=Math.max(0,ta.flights-ta.bags);
+    const mvp=month.bags-pm.bags;
     const yp=pn(ytd.bags,ytd.flights);const mp=pn(month.bags,month.flights);const dp=pn(ta.bags,ta.flights);const qp=pn(qData.bags,qData.flights);
     const ytdRatio=ratioStr(ytd.bags,ytd.flights);const mRatio=ratioStr(month.bags,month.flights);const dRatio=ta.flights>0?ratioStr(ta.bags,ta.flights):'—';const qRatio=ratioStr(qData.bags,qData.flights);
-    // Weekly KPI (only days with bags, up to today)
-    const wk=getWeeklyKPI();const wd=wk.bags-wk.flights;const wp=pn(wk.bags,wk.flights);const wRatio=ratioStr(wk.bags,wk.flights);
-    // Week date range label: Thu → Wed
-    const wkStart=gwk(today);const wkEnd=new Date(wkStart+'T00:00:00');wkEnd.setDate(wkEnd.getDate()+6);
-    const wkLabel=pad(new Date(wkStart+'T00:00:00').getDate())+'/'+pad(new Date(wkStart+'T00:00:00').getMonth()+1)+' → '+pad(wkEnd.getDate())+'/'+pad(wkEnd.getMonth()+1);
     kpiHtml=`
-<div class="kpi-card ${dc(yd)}"><div class="kpi-label">Totale YTD ${year}</div><div class="kpi-main"><div class="kpi-value mono">${ytd.bags.toLocaleString('it')}</div><div class="kpi-unit">bag</div></div><div class="kpi-row"><div class="kpi-sub">su ${ytd.flights.toLocaleString('it')} voli</div><div class="kpi-delta ${dc(yd)}">${ds(yd)}${yd}</div></div><div class="kpi-progress"><div class="kpi-progress-bar" style="width:${Math.min(yp,100)}%;background:${bc(yp)};"></div></div><div class="kpi-missing">Ratio: <strong style="color:${bc(yp)}">${ytdRatio}</strong> &nbsp;|&nbsp; ${yp>=100?'<span style="color:var(--green)">✓ TARGET</span>':'mancano <span style="color:var(--red);font-weight:600;">'+Math.max(0,ytd.flights-ytd.bags)+'</span> bag'}</div></div>
-<div class="kpi-card ${dc(qd)}"><div class="kpi-label">Q${cq} ${year}</div><div class="kpi-main"><div class="kpi-value mono">${qData.bags.toLocaleString('it')}</div><div class="kpi-unit">bag</div></div><div class="kpi-row"><div class="kpi-sub">su ${qData.flights.toLocaleString('it')} voli · ${qData.days}gg</div><div class="kpi-delta ${dc(qd)}">${ds(qd)}${qd}</div></div><div class="kpi-progress"><div class="kpi-progress-bar" style="width:${Math.min(qp,100)}%;background:${bc(qp)};"></div></div><div class="kpi-missing">Ratio: <strong style="color:${bc(qp)}">${qRatio}</strong> &nbsp;|&nbsp; ${qp>=100?'<span style="color:var(--green)">✓ TARGET Q</span>':'mancano <span style="color:var(--red);font-weight:600;">'+Math.max(0,qData.flights-qData.bags)+'</span> bag'}</div></div>
-<div class="kpi-card ${dc(md)}"><div class="kpi-label">Mese — ${mkfull(mk)}</div><div class="kpi-main"><div class="kpi-value mono">${month.bags.toLocaleString('it')}</div><div class="kpi-unit">bag</div></div><div class="kpi-row"><div class="kpi-sub">su ${month.flights} voli · ${mEntries.length}gg</div><div class="kpi-delta ${dc(md)}">${ds(md)}${md}</div></div><div class="kpi-progress"><div class="kpi-progress-bar" style="width:${Math.min(mp,100)}%;background:${bc(mp)};"></div></div><div class="kpi-missing">Ratio: <strong style="color:${bc(mp)}">${mRatio}</strong> &nbsp;|&nbsp; vs prec.: <strong style="color:${mvp>=0?'var(--green)':'var(--red)'}">${ds(mvp)}${mvp}</strong></div></div>
-<div class="kpi-card ${wk.flights===0?'blue':dc(wd)}"><div class="kpi-label">Settimana &nbsp;<span style="font-weight:400;color:var(--text3);">${wkLabel}</span></div><div class="kpi-main"><div class="kpi-value mono" style="color:${bc(wp)};">${wRatio}</div><div class="kpi-unit" style="font-size:.8rem;color:var(--text2);">ratio</div></div><div class="kpi-row"><div class="kpi-sub">${wk.bags} bag su ${wk.flights} voli</div><div class="kpi-delta ${dc(wd)}">${wk.flights>0?ds(wd)+wd:'—'}</div></div><div class="kpi-progress"><div class="kpi-progress-bar" style="width:${Math.min(wp,100)}%;background:${bc(wp)};"></div></div><div class="kpi-missing">${wp>=100?'<span style="color:var(--green)">✓ TARGET</span>':wk.flights>0?'mancano <span style="color:var(--red);">'+Math.max(0,wk.flights-wk.bags)+'</span>':'Inserisci i dati'} &nbsp;<span style="color:var(--green);font-weight:500;">↗ progressive</span></div></div>
-<div class="kpi-card ${ta.flights===0?'blue':dc(dd)}"><div class="kpi-label">Oggi — ${fmtDate(today)}</div><div class="kpi-main"><div class="kpi-value mono">${ta.bags}</div><div class="kpi-unit">bag</div></div><div class="kpi-row"><div class="kpi-sub">su ${ta.flights} voli · target: ${ta.flights}</div>${ta.flights>0?`<div class="kpi-delta ${dc(dd)}">${ds(dd)}${dd}</div>`:'<div class="kpi-delta neu">—</div>'}</div><div class="kpi-progress"><div class="kpi-progress-bar" style="width:${Math.min(dp,100)}%;background:${bc(dp)};"></div></div><div class="kpi-missing">${ta.flights===0?'Inserisci dati in <em>Operativo Giornaliero</em>':tm===0?'<span style="color:var(--green)">✓ TARGET RAGGIUNTO</span>':'Ratio: <strong style="color:'+bc(dp)+'">'+dRatio+'</strong> &nbsp;|&nbsp; mancano <span style="color:var(--red);font-weight:600;">'+tm+'</span>'}</div></div>`;
-  } else if(_dashPeriodFilter.startsWith('Q')){
-    const q=parseInt(_dashPeriodFilter[1]);
-    const qData=getQagg(q);const prevQ=q>1?q-1:4;const prevQData=getQagg(prevQ);
-    const delta=qData.bags-qData.flights;const p=pn(qData.bags,qData.flights);
-    const ratio=ratioStr(qData.bags,qData.flights);const vsPrec=qData.bags-prevQData.bags;
-    const kq=getKioskQ(q);const kpcc=pp=>kioskPctColor(pp);
-    kpiHtml=`
-<div class="kpi-card ${dc(delta)}"><div class="kpi-label">Bagagli Q${q} ${year}</div><div class="kpi-main"><div class="kpi-value mono">${qData.bags.toLocaleString('it')}</div><div class="kpi-unit">bag</div></div><div class="kpi-row"><div class="kpi-sub">su ${qData.flights.toLocaleString('it')} voli · ${qData.days}gg</div><div class="kpi-delta ${dc(delta)}">${ds(delta)}${delta}</div></div><div class="kpi-progress"><div class="kpi-progress-bar" style="width:${Math.min(p,100)}%;background:${bc(p)};"></div></div><div class="kpi-missing">Ratio: <strong style="color:${bc(p)}">${ratio}</strong> &nbsp;|&nbsp; ${p>=100?'<span style="color:var(--green)">✓ TARGET</span>':'mancano <span style="color:var(--red);font-weight:600;">'+Math.max(0,qData.flights-qData.bags)+'</span> bag'}</div></div>
-<div class="kpi-card blue"><div class="kpi-label">Voli Q${q} ${year}</div><div class="kpi-main"><div class="kpi-value mono">${qData.flights.toLocaleString('it')}</div><div class="kpi-unit">voli</div></div><div class="kpi-row"><div class="kpi-sub">${qData.days} giorni operativi</div></div><div class="kpi-progress"><div class="kpi-progress-bar" style="width:${Math.min(p,100)}%;background:${bc(p)};"></div></div></div>
-<div class="kpi-card ${delta>=0?'green':'red'}"><div class="kpi-label">Delta Q${q} vs Q${prevQ}</div><div class="kpi-main"><div class="kpi-value mono" style="color:${delta>=0?'var(--green)':'var(--red)'}">${ds(delta)}${delta}</div><div class="kpi-unit">bag</div></div><div class="kpi-row"><div class="kpi-sub">vs Q${prevQ}: <strong style="color:${vsPrec>=0?'var(--green)':'var(--red)'};">${ds(vsPrec)}${vsPrec}</strong></div></div><div class="kpi-progress"><div class="kpi-progress-bar" style="width:${Math.min(p,100)}%;background:${bc(p)};"></div></div></div>
-<div class="kpi-card ${kioskCardClass(kq.pct)}"><div class="kpi-label">Kiosk% Q${q}</div><div class="kpi-main"><div class="kpi-value" style="color:${kpcc(kq.pct)};">${kq.pct>0?kq.pct.toFixed(1)+'%':'—'}</div></div><div class="kpi-row"><div class="kpi-sub">${kq.totT} ckd · ${kq.days} giorni</div></div><div class="kpi-progress"><div class="kpi-progress-bar" style="width:${Math.min(kq.pct,100)}%;background:${kpcc(kq.pct)};"></div></div></div>`;
+<div class="kpi-card ${dc(yd)}"><div class="kpi-label">Totale YTD ${year}</div><div class="kpi-main"><div class="kpi-value mono" style="color:${bc(yp)};">${ytdRatio}</div></div><div class="kpi-row"><div class="kpi-sub">${ytd.bags.toLocaleString('it')} bag su ${ytd.flights.toLocaleString('it')} voli</div><div class="kpi-delta ${dc(yd)}">${ds(yd)}${yd}</div></div><div class="kpi-progress"><div class="kpi-progress-bar" style="width:${Math.min(yp,100)}%;background:${bc(yp)};"></div></div><div class="kpi-missing">${yp>=100?'<span style="color:var(--green)">✓ TARGET</span>':'mancano <span style="color:var(--red);font-weight:600;">'+Math.max(0,ytd.flights-ytd.bags)+'</span> bag'}</div></div>
+<div class="kpi-card ${dc(qd)}"><div class="kpi-label">Q${cq} ${year}</div><div class="kpi-main"><div class="kpi-value mono" style="color:${bc(qp)};">${qRatio}</div></div><div class="kpi-row"><div class="kpi-sub">${qData.bags.toLocaleString('it')} bag su ${qData.flights.toLocaleString('it')} voli · ${qData.days}gg</div><div class="kpi-delta ${dc(qd)}">${ds(qd)}${qd}</div></div><div class="kpi-progress"><div class="kpi-progress-bar" style="width:${Math.min(qp,100)}%;background:${bc(qp)};"></div></div><div class="kpi-missing">${qp>=100?'<span style="color:var(--green)">✓ TARGET Q</span>':'mancano <span style="color:var(--red);font-weight:600;">'+Math.max(0,qData.flights-qData.bags)+'</span> bag'}</div></div>
+<div class="kpi-card ${dc(md)}"><div class="kpi-label">Mese — ${mkfull(mk)}</div><div class="kpi-main"><div class="kpi-value mono" style="color:${bc(mp)};">${mRatio}</div></div><div class="kpi-row"><div class="kpi-sub">${month.bags.toLocaleString('it')} bag su ${month.flights} voli · ${mEntries.length}gg</div><div class="kpi-delta ${dc(md)}">${ds(md)}${md}</div></div><div class="kpi-progress"><div class="kpi-progress-bar" style="width:${Math.min(mp,100)}%;background:${bc(mp)};"></div></div><div class="kpi-missing">${mp>=100?'<span style="color:var(--green)">✓ TARGET</span>':'mancano <span style="color:var(--red);font-weight:600;">'+Math.max(0,month.flights-month.bags)+'</span> bag'} &nbsp;|&nbsp; vs prec.: <strong style="color:${mvp>=0?'var(--green)':'var(--red)'}">${ds(mvp)}${mvp}</strong></div></div>
+<div class="kpi-card ${ta.flights===0?'blue':dc(dd)}"><div class="kpi-label">Oggi — ${fmtDate(today)}</div><div class="kpi-main"><div class="kpi-value mono" style="color:${ta.flights>0?bc(dp):'var(--text3)'};">${dRatio}</div></div><div class="kpi-row"><div class="kpi-sub">${ta.bags} bag su ${ta.flights} voli</div>${ta.flights>0?`<div class="kpi-delta ${dc(dd)}">${ds(dd)}${dd}</div>`:'<div class="kpi-delta neu">—</div>'}</div><div class="kpi-progress"><div class="kpi-progress-bar" style="width:${Math.min(dp,100)}%;background:${bc(dp)};"></div></div><div class="kpi-missing">${ta.flights===0?'Inserisci dati in <em>Operativo Giornaliero</em>':dp>=100?'<span style="color:var(--green)">✓ TARGET RAGGIUNTO</span>':'mancano <span style="color:var(--red);font-weight:600;">'+Math.max(0,ta.flights-ta.bags)+'</span>'}</div></div>`;
   } else if(_dashPeriodFilter==='today'){
     const ta=agg[today]||{flights:0,bags:0};
     const dd=ta.bags-ta.flights;const dp=pn(ta.bags,ta.flights);
-    const tm=Math.max(0,ta.flights-ta.bags);const dRatio=ta.flights>0?ratioStr(ta.bags,ta.flights):'—';
+    const dRatio=ta.flights>0?ratioStr(ta.bags,ta.flights):'—';
     const kd=getKioskDay(today);const kpcc=pp=>kioskPctColor(pp);
     kpiHtml=`
-<div class="kpi-card ${ta.flights===0?'blue':dc(dd)}"><div class="kpi-label">Bagagli Oggi — ${fmtDate(today)}</div><div class="kpi-main"><div class="kpi-value mono">${ta.bags}</div><div class="kpi-unit">bag</div></div><div class="kpi-row"><div class="kpi-sub">su ${ta.flights} voli</div>${ta.flights>0?`<div class="kpi-delta ${dc(dd)}">${ds(dd)}${dd}</div>`:'<div class="kpi-delta neu">—</div>'}</div><div class="kpi-progress"><div class="kpi-progress-bar" style="width:${Math.min(dp,100)}%;background:${bc(dp)};"></div></div><div class="kpi-missing">${tm===0&&ta.flights>0?'<span style="color:var(--green)">✓ TARGET</span>':ta.flights===0?'Nessun dato oggi':'mancano <span style="color:var(--red);">'+tm+'</span>'}</div></div>
+<div class="kpi-card ${ta.flights===0?'blue':dc(dd)}"><div class="kpi-label">Bagagli Oggi — ${fmtDate(today)}</div><div class="kpi-main"><div class="kpi-value mono" style="color:${ta.flights>0?bc(dp):'var(--text3)'};">${dRatio}</div></div><div class="kpi-row"><div class="kpi-sub">${ta.bags} bag su ${ta.flights} voli</div>${ta.flights>0?`<div class="kpi-delta ${dc(dd)}">${ds(dd)}${dd}</div>`:'<div class="kpi-delta neu">—</div>'}</div><div class="kpi-progress"><div class="kpi-progress-bar" style="width:${Math.min(dp,100)}%;background:${bc(dp)};"></div></div><div class="kpi-missing">${ta.flights===0?'Nessun dato oggi':dp>=100?'<span style="color:var(--green)">✓ TARGET</span>':'mancano <span style="color:var(--red);">'+Math.max(0,ta.flights-ta.bags)+'</span>'}</div></div>
 <div class="kpi-card blue"><div class="kpi-label">Voli Oggi</div><div class="kpi-main"><div class="kpi-value mono">${ta.flights}</div><div class="kpi-unit">voli</div></div><div class="kpi-row"><div class="kpi-sub">target: ${ta.flights} bag</div></div></div>
-<div class="kpi-card ${ta.flights===0?'blue':dc(dd)}"><div class="kpi-label">Ratio Oggi</div><div class="kpi-main"><div class="kpi-value mono" style="color:${bc(dp)}">${dRatio}</div></div><div class="kpi-row"><div class="kpi-sub">${dp}% del target</div></div></div>
-<div class="kpi-card ${kioskCardClass(kd.pct)}"><div class="kpi-label">Kiosk% Oggi</div><div class="kpi-main"><div class="kpi-value" style="color:${kpcc(kd.pct)};">${kd.pct>0?kd.pct.toFixed(1)+'%':'—'}</div></div><div class="kpi-row"><div class="kpi-sub">${kd.totT} ckd bags</div></div><div class="kpi-progress"><div class="kpi-progress-bar" style="width:${Math.min(kd.pct,100)}%;background:${kpcc(kd.pct)};"></div></div></div>`;
+<div class="kpi-card ${kioskCardClass(kd.pct)}"><div class="kpi-label">Kiosk% Oggi</div><div class="kpi-main"><div class="kpi-value" style="color:${kpcc(kd.pct)};">${kd.pct>0?kd.pct.toFixed(1)+'%':'—'}</div></div><div class="kpi-row"><div class="kpi-sub">${kd.totT} ckd bags</div></div><div class="kpi-progress"><div class="kpi-progress-bar" style="width:${Math.min(kd.pct,100)}%;background:${kpcc(kd.pct)};"></div></div></div>
+${weeklyKpiCardHtml(today)}`;
   } else {
-    // Specific month: _dashPeriodFilter = 'YYYY-MM'
-    const selMk=_dashPeriodFilter;
+    // 'month' = mese corrente (dinamico) oppure 'YYYY-MM' = mese specifico scelto dal filtro a cascata
+    const selMk=_dashPeriodFilter==='month'?mk:_dashPeriodFilter;
+    const isCurrentMonth=selMk===mk;
     const mEntries=Object.entries(agg).filter(([k])=>k.startsWith(selMk));
     const mData=mEntries.reduce((a,[,v])=>({flights:a.flights+v.flights,bags:a.bags+v.bags,days:a.days+1}),{flights:0,bags:0,days:0});
     const prevMDate=new Date(selMk+'-01T00:00:00');prevMDate.setMonth(prevMDate.getMonth()-1);
@@ -1398,10 +1450,10 @@ function renderDashboard(){
     const ratio=ratioStr(mData.bags,mData.flights);const vsPrec=mData.bags-prevM.bags;
     const km=getKioskMonth(selMk);const kpcc=pp=>kioskPctColor(pp);
     kpiHtml=`
-<div class="kpi-card ${dc(delta)}"><div class="kpi-label">Bagagli — ${mkfull(selMk)}</div><div class="kpi-main"><div class="kpi-value mono">${mData.bags.toLocaleString('it')}</div><div class="kpi-unit">bag</div></div><div class="kpi-row"><div class="kpi-sub">su ${mData.flights.toLocaleString('it')} voli · ${mData.days}gg</div><div class="kpi-delta ${dc(delta)}">${ds(delta)}${delta}</div></div><div class="kpi-progress"><div class="kpi-progress-bar" style="width:${Math.min(p,100)}%;background:${bc(p)};"></div></div><div class="kpi-missing">Ratio: <strong style="color:${bc(p)}">${ratio}</strong> &nbsp;|&nbsp; ${p>=100?'<span style="color:var(--green)">✓ TARGET</span>':'mancano <span style="color:var(--red);font-weight:600;">'+Math.max(0,mData.flights-mData.bags)+'</span> bag'}</div></div>
+<div class="kpi-card ${dc(delta)}"><div class="kpi-label">Bagagli — ${mkfull(selMk)}</div><div class="kpi-main"><div class="kpi-value mono" style="color:${bc(p)};">${ratio}</div></div><div class="kpi-row"><div class="kpi-sub">${mData.bags.toLocaleString('it')} bag su ${mData.flights.toLocaleString('it')} voli · ${mData.days}gg</div><div class="kpi-delta ${dc(delta)}">${ds(delta)}${delta}</div></div><div class="kpi-progress"><div class="kpi-progress-bar" style="width:${Math.min(p,100)}%;background:${bc(p)};"></div></div><div class="kpi-missing">${p>=100?'<span style="color:var(--green)">✓ TARGET</span>':'mancano <span style="color:var(--red);font-weight:600;">'+Math.max(0,mData.flights-mData.bags)+'</span> bag'} &nbsp;|&nbsp; vs ${mname(prevMk)}: <strong style="color:${vsPrec>=0?'var(--green)':'var(--red)'};">${ds(vsPrec)}${vsPrec}</strong></div></div>
 <div class="kpi-card blue"><div class="kpi-label">Voli — ${mkfull(selMk)}</div><div class="kpi-main"><div class="kpi-value mono">${mData.flights.toLocaleString('it')}</div><div class="kpi-unit">voli</div></div><div class="kpi-row"><div class="kpi-sub">${mData.days} giorni operativi</div></div></div>
-<div class="kpi-card ${delta>=0?'green':'red'}"><div class="kpi-label">Delta vs ${mkfull(prevMk)}</div><div class="kpi-main"><div class="kpi-value mono" style="color:${delta>=0?'var(--green)':'var(--red)'}">${ds(delta)}${delta}</div><div class="kpi-unit">bag</div></div><div class="kpi-row"><div class="kpi-sub">vs ${mname(prevMk)}: <strong style="color:${vsPrec>=0?'var(--green)':'var(--red)'};">${ds(vsPrec)}${vsPrec}</strong></div></div><div class="kpi-progress"><div class="kpi-progress-bar" style="width:${Math.min(p,100)}%;background:${bc(p)};"></div></div></div>
-<div class="kpi-card ${kioskCardClass(km.pct)}"><div class="kpi-label">Kiosk% ${mname(selMk)}</div><div class="kpi-main"><div class="kpi-value" style="color:${kpcc(km.pct)};">${km.pct>0?km.pct.toFixed(1)+'%':'—'}</div></div><div class="kpi-row"><div class="kpi-sub">${km.totT} ckd · ${km.days} giorni</div></div><div class="kpi-progress"><div class="kpi-progress-bar" style="width:${Math.min(km.pct,100)}%;background:${kpcc(km.pct)};"></div></div></div>`;
+<div class="kpi-card ${kioskCardClass(km.pct)}"><div class="kpi-label">Kiosk% ${mname(selMk)}</div><div class="kpi-main"><div class="kpi-value" style="color:${kpcc(km.pct)};">${km.pct>0?km.pct.toFixed(1)+'%':'—'}</div></div><div class="kpi-row"><div class="kpi-sub">${km.totT} ckd · ${km.days} giorni</div></div><div class="kpi-progress"><div class="kpi-progress-bar" style="width:${Math.min(km.pct,100)}%;background:${kpcc(km.pct)};"></div></div></div>
+${isCurrentMonth?weeklyKpiCardHtml(today):''}`;
   }
   document.getElementById('dash-kpis').innerHTML=kpiHtml;
 
@@ -1480,7 +1532,7 @@ function renderDashboard(){
       }
     }
   });
-  renderTopDest('ytd');
+  renderTopDest();
   renderKioskDashKPIs();
 }
 
@@ -1514,8 +1566,14 @@ function renderKioskDashKPIs(){
 }
 
 // =================== TOP DESTINATIONS ===================
-let _tdScope='ytd';
-let _tdDestFilter=''; // empty = top 3, else specific IATA
+let _tdScope='ytd'; // 'ytd' | 'month' (mese corrente) | 'today' | 'YYYY-MM' (mese specifico dalla cascata)
+let _tdSortDir='top'; // 'top' | 'bottom'
+let _tdCascadeYear=null;
+
+function getAllTrackedMonths(){
+  const data=gd();
+  return [...new Set(Object.keys(data).filter(d=>(data[d]||[]).length).map(d=>d.substring(0,7)))].sort();
+}
 
 function getAllDests(scope){
   const data=gd();const year=cy();const today=ts();const mk=cmk();
@@ -1524,6 +1582,7 @@ function getAllDests(scope){
     if(scope==='ytd'&&!d.startsWith(String(year)))return;
     if(scope==='month'&&!d.startsWith(mk))return;
     if(scope==='today'&&d!==today)return;
+    if(/^\d{4}-\d{2}$/.test(scope)&&!d.startsWith(scope))return;
     flights.forEach(f=>{
       if(!f.to||f.to==='—')return;
       if(!map[f.to])map[f.to]={to:f.to,bags:0,ops:0};
@@ -1534,16 +1593,30 @@ function getAllDests(scope){
   return Object.values(map).sort((a,b)=>b.bags-a.bags);
 }
 
+function setTdSortDir(dir){_tdSortDir=dir;renderTopDest();}
+function setTdCascadeYear(y){_tdCascadeYear=y;renderTopDest();}
+
 function renderTopDest(scope){
   _tdScope=scope||_tdScope;
-  const allDests=getAllDests(_tdScope);
+  const allDests=getAllDests(_tdScope); // sorted desc by bags
   const medals=['🥇','🥈','🥉'];
   const barColors=['#FFD100','#8a96b0','#a0785a'];
-  const scopeLabel={ytd:'YTD '+cy(),month:'Mese corrente',today:'Oggi'};
+  const bottomColors=['#c0392b','#b04a4a','#9c5a5a'];
+  const isBottom=_tdSortDir==='bottom';
 
-  // Build display list: top 3 or filtered dest
-  let displayList=_tdDestFilter?allDests.filter(d=>d.to===_tdDestFilter):allDests.slice(0,3);
-  const maxBags=displayList.length?Math.max(1,displayList[0].bags):1;
+  const trackedMonths=getAllTrackedMonths();
+  const allYears=[...new Set(trackedMonths.map(m=>m.substring(0,4)))];
+  if(!allYears.length)allYears.push(String(cy()));
+  if(!_tdCascadeYear||!allYears.includes(_tdCascadeYear))_tdCascadeYear=allYears[allYears.length-1];
+  const monthsForYear=trackedMonths.filter(m=>m.startsWith(_tdCascadeYear));
+  const isCascadeMonth=/^\d{4}-\d{2}$/.test(_tdScope);
+  const scopeLabel=isCascadeMonth?mkfull(_tdScope):({ytd:'YTD '+cy(),month:'Mese corrente',today:'Oggi'}[_tdScope]||'');
+
+  // Build display list: top 3 (highest bags) or bottom 3 (lowest, excluding destinations with 0 bag — quelle
+  // sono solo dati mancanti, non delle "minime" reali) su chi ha effettivamente operato bagagli.
+  const nonZero=allDests.filter(d=>d.bags>0);
+  const displayList=isBottom?[...nonZero].reverse().slice(0,3):allDests.slice(0,3);
+  const maxBags=displayList.length?Math.max(1,...displayList.map(d=>d.bags)):1;
 
   let cards='';
   if(!displayList.length){
@@ -1552,11 +1625,12 @@ function renderTopDest(scope){
     displayList.forEach((d,i)=>{
       const pct=Math.round(d.bags/maxBags*100);
       const ratio=d.ops>0?ratioStr(d.bags,d.ops):'—';
-      const iataClass=_tdDestFilter?'rank1':['rank1','rank2','rank3'][i]||'';
-      const barCol=_tdDestFilter?'var(--accent)':barColors[i]||'var(--border2)';
+      const iataClass=isBottom?'':['rank1','rank2','rank3'][i]||'';
+      const barCol=isBottom?(bottomColors[i]||'var(--border2)'):(barColors[i]||'var(--border2)');
+      const rankIcon=isBottom?'⬇'+(i+1):(medals[i]||'#'+(i+1));
       cards+=`
       <div class="dest-item">
-        <div class="dest-rank">${_tdDestFilter?'📍':medals[i]||'#'+(i+1)}</div>
+        <div class="dest-rank">${rankIcon}</div>
         <div class="dest-iata ${iataClass}">${d.to}</div>
         <div class="dest-bags">${d.bags} <span style="font-size:.78rem;font-weight:400;color:var(--text3);">bag</span></div>
         <div class="dest-meta">
@@ -1568,24 +1642,30 @@ function renderTopDest(scope){
     });
   }
 
-  // Build destination selector options
-  const destOptions=allDests.map(d=>`<option value="${d.to}" ${_tdDestFilter===d.to?'selected':''}>${d.to} (${d.bags} bag)</option>`).join('');
+  const rankLabel=isBottom?'Bottom 3':'Top 3';
 
   document.getElementById('dash-topdest').innerHTML=`
   <div class="topdest-card">
     <div class="topdest-header">
-      <div class="topdest-title">${_tdDestFilter?'Destinazione: <strong>'+_tdDestFilter+'</strong>':'Top 3 Destinazioni per Bagagli'} &nbsp;<span style="color:var(--text3);font-weight:400;font-size:.78rem;">${scopeLabel[_tdScope]}</span></div>
+      <div class="topdest-title">Bagagli/Destinazione &nbsp;<span style="color:var(--text3);font-weight:400;font-size:.78rem;">${rankLabel} · ${scopeLabel}</span></div>
       <div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap;">
         <div class="scope-tabs">
           <button class="scope-tab ${_tdScope==='ytd'?'active':''}" onclick="renderTopDest('ytd')">YTD</button>
           <button class="scope-tab ${_tdScope==='month'?'active':''}" onclick="renderTopDest('month')">Mese</button>
           <button class="scope-tab ${_tdScope==='today'?'active':''}" onclick="renderTopDest('today')">Oggi</button>
         </div>
-        <select onchange="_tdDestFilter=this.value;renderTopDest()" style="padding:4px 8px;font-size:12px;border-radius:6px;background:var(--surface);border:1px solid var(--border);color:var(--text);min-height:28px;cursor:pointer;max-width:180px;">
-          <option value="">Top 3</option>
-          ${destOptions}
+        <select class="period-select" onchange="setTdCascadeYear(this.value)" style="min-height:28px;padding:4px 8px;font-size:12px;">
+          ${allYears.map(y=>`<option value="${y}" ${y===_tdCascadeYear?'selected':''}>${y}</option>`).join('')}
         </select>
-        ${_tdDestFilter?`<button class="btn btn-secondary btn-xs" onclick="_tdDestFilter='';renderTopDest()">✕</button>`:''}
+        <select class="period-select" onchange="if(this.value)renderTopDest(this.value)" style="min-height:28px;padding:4px 8px;font-size:12px;">
+          <option value="">Mese…</option>
+          ${monthsForYear.map(m=>`<option value="${m}" ${_tdScope===m?'selected':''}>${mname(m)}</option>`).join('')}
+        </select>
+        <span style="width:1px;height:16px;background:var(--border2);display:inline-block;margin:0 2px;flex-shrink:0;"></span>
+        <div class="scope-tabs">
+          <button class="scope-tab ${!isBottom?'active':''}" onclick="setTdSortDir('top')">Top 3</button>
+          <button class="scope-tab ${isBottom?'active':''}" onclick="setTdSortDir('bottom')">Bottom 3</button>
+        </div>
       </div>
     </div>
     <div class="topdest-grid" style="${displayList.length===1?'grid-template-columns:1fr 1fr 1fr;':''}">${cards}</div>
@@ -1602,6 +1682,18 @@ function loadDayFlights(){
   if(SEED_DATA[d]&&(!data[d]||data[d].length===0)){data[d]=JSON.parse(JSON.stringify(SEED_DATA[d]));sd(data);showSt('ok','Voli caricati per il '+fmtDate(d)+' ('+SEED_DATA[d].length+' voli FR).');}
   renderFT();renderHistory();
 }
+function dayStatGridHtml(n,booked,bags,td,tp){
+  const ratio=n>0?ratioStr(bags,n):'—';
+  return `<div class="day-summary-grid">
+    <div class="day-stat"><div class="day-stat-label">Voli</div><div class="day-stat-value">${n}</div></div>
+    <div class="day-stat"><div class="day-stat-label">Booked</div><div class="day-stat-value">${booked.toLocaleString('it')}</div></div>
+    <div class="day-stat accent"><div class="day-stat-label">Bagagli</div><div class="day-stat-value" style="color:${bc(tp)};">${bags}</div></div>
+    <div class="day-stat"><div class="day-stat-label">Target</div><div class="day-stat-value">${n}</div></div>
+    <div class="day-stat"><div class="day-stat-label">Delta</div><div class="day-stat-value" style="color:${td>=0?'var(--green)':'var(--red)'};">${ds(td)}${td}</div></div>
+    <div class="day-stat"><div class="day-stat-label">%</div><div class="day-stat-value" style="color:${bc(tp)};">${tp}%</div></div>
+    <div class="day-stat accent"><div class="day-stat-label">Ratio</div><div class="day-stat-value" style="color:${bc(tp)};">${ratio}</div></div>
+  </div>`;
+}
 function renderFT(){
   const data=gd();const d=curDate;
   document.getElementById('flight-date-label').textContent='Voli del '+fmtDate(d);
@@ -1613,7 +1705,7 @@ function renderFT(){
     document.getElementById('daily-totals').innerHTML='';return;
   }
   const tt=dayTot(flights);const td=tt.bags-tt.n;const tp=pn(tt.bags,tt.n);
-  document.getElementById('daily-totals').innerHTML=`<div class="dtot">Voli: <strong>${tt.n}</strong></div><div class="dtot">Booked: <strong>${tt.booked.toLocaleString('it')}</strong></div><div class="dtot">Bagagli: <strong>${tt.bags}</strong></div><div class="dtot">Target: <strong>${tt.n}</strong></div><div class="dtot">Delta: <span class="badge ${dc(td)}">${ds(td)}${td}</span></div><div class="dtot">%: <strong style="color:${bc(tp)}">${tp}%</strong></div>`;
+  document.getElementById('daily-totals').innerHTML=dayStatGridHtml(tt.n,tt.booked,tt.bags,td,tp);
   let html='';
   flights.forEach((f,i)=>{
     const b=f.bags!==null&&f.bags!==undefined&&f.bags!==''?+f.bags:null;
@@ -1659,7 +1751,7 @@ function updateLiveTotals(){
   const booked=bkd.reduce((s,b)=>s+b,0);
   const td=bags-n;const tp=pn(bags,n);
   const totEl=document.getElementById('daily-totals');
-  if(totEl)totEl.innerHTML=`<div class="dtot">Voli: <strong>${n}</strong></div><div class="dtot">Booked: <strong>${booked.toLocaleString('it')}</strong></div><div class="dtot">Bagagli: <strong style="color:${bc(tp)};">${bags}</strong></div><div class="dtot">Target: <strong>${n}</strong></div><div class="dtot">Delta: <span class="badge ${dc(td)}">${ds(td)}${td}</span></div><div class="dtot">Ratio: <strong style="color:${bc(tp)}">${n>0?ratioStr(bags,n):'—'}</strong></div>`;
+  if(totEl)totEl.innerHTML=dayStatGridHtml(n,booked,bags,td,tp);
   const ft=document.getElementById('flights-foot');
   if(ft&&ft.style.display!=='none')ft.innerHTML=`<td colspan="4">TOTALE GIORNO</td><td class="right mono">${booked.toLocaleString('it')}</td><td class="right mono" style="color:${bc(tp)};font-weight:700;">${bags}</td><td class="right mono">${n}</td><td class="right mono"><span class="badge ${dc(td)}">${ds(td)}${td}</span></td><td class="right mono" style="color:${bc(tp)}">${tp}%</td><td></td>`;
 }
@@ -1779,6 +1871,21 @@ function updateDayIndicator(){
   const btn=document.getElementById('btn-goto-today');
   if(badge){badge.style.display=(!date||isToday)?'none':'flex';}
   if(btn){btn.style.display=(!date||isToday)?'none':'flex';}
+  const wd=document.getElementById('inp-date-weekday');
+  if(wd)wd.textContent=date?wdayLabel(date)+(isToday?' · OGGI':''):'';
+}
+function wdayLabel(d){
+  const names=['Domenica','Lunedì','Martedì','Mercoledì','Giovedì','Venerdì','Sabato'];
+  return names[new Date(d+'T00:00:00').getDay()];
+}
+function shiftDay(delta){
+  const inp=document.getElementById('inp-date');
+  const base=inp.value||ts();
+  const dt=new Date(base+'T00:00:00');
+  dt.setDate(dt.getDate()+delta);
+  const nd=dt.getFullYear()+'-'+pad(dt.getMonth()+1)+'-'+pad(dt.getDate());
+  inp.value=nd;curDate=nd;
+  loadDayFlights();updateDayIndicator();
 }
 function goToToday(){
   const today=ts();
