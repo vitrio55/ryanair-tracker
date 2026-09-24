@@ -457,11 +457,18 @@ input::-webkit-calendar-picker-indicator{filter:invert(.5);cursor:pointer;}
   font-size:11px;font-weight:500;color:var(--text3);text-transform:uppercase;
   letter-spacing:.04em;margin-top:4px;text-align:center;
 }
-/* ── LIVE PROGRESS / FW ─────────────────────────────────────────────────── */
-.live-wrap{flex-basis:100%;width:100%;}
-.live-head{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-top:14px;font-size:11px;font-weight:600;letter-spacing:.04em;text-transform:uppercase;color:var(--text3);}
-.live-grid{grid-template-columns:repeat(7,1fr);margin-top:8px;}
-.day-stat.fw::before{background:#8e44ad;}
+/* ── RIEPILOGO GIORNATA COMPATTO ────────────────────────────────────────── */
+.ds-wrap{flex-basis:100%;display:flex;flex-wrap:wrap;gap:10px 14px;margin-top:10px;}
+.ds-group{display:flex;gap:6px;align-items:stretch;padding:6px 8px 6px 6px;border:1px solid var(--border);border-radius:var(--radius);background:var(--surface);position:relative;padding-top:18px;}
+.ds-gl{position:absolute;top:4px;left:8px;font-size:9px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--text3);white-space:nowrap;}
+.ds-tile{min-width:58px;padding:4px 8px;border-radius:6px;background:var(--card);border-top:2px solid var(--border);}
+.ds-tile.ds-accent{border-top-color:var(--accent);}
+.ds-tile.ds-fw{border-top-color:#8e44ad;}
+.ds-l{font-size:9px;font-weight:600;letter-spacing:.04em;text-transform:uppercase;color:var(--text3);white-space:nowrap;}
+.ds-v{font-size:16px;font-weight:600;color:var(--text);font-variant-numeric:tabular-nums;line-height:1.25;white-space:nowrap;}
+.ds-of{font-size:11px;color:var(--text3);font-weight:500;}
+.ds-s{font-size:9.5px;color:var(--text3);white-space:nowrap;}
+@media(max-width:480px){.ds-group{flex-wrap:wrap;}.ds-tile{min-width:52px;}}
 .fw-badge{display:inline-block;margin-left:6px;padding:1px 5px;border-radius:4px;font-size:9.5px;font-weight:700;letter-spacing:.04em;background:rgba(142,68,173,.14);color:#8e44ad;vertical-align:middle;}
 .day-summary-grid{
   display:grid;grid-template-columns:repeat(7,1fr);gap:8px;
@@ -1725,45 +1732,43 @@ function getFwAgg(filterFn){
   Object.entries(gd()).forEach(([d,f])=>{if(!filterFn(d))return;const x=fwDay(f);if(!x.n)return;n+=x.n;bags+=x.bags;days++;});
   return{n,bags,days};
 }
-// Pannello "Progressivo live": confronto sui soli voli già inseriti (bagagli valorizzati, anche 0)
-function liveProgressHtml(rows){
+// Riepilogo giornata compatto: Giornata (totali) + Live (solo voli già inseriti, anche 0) + FW
+function r2(b,f){return f>0?(b/f).toFixed(2).replace('.',','):'—';}
+function dsTile(label,val,color,sub,cls){
+  return `<div class="ds-tile${cls?' '+cls:''}"><div class="ds-l">${label}</div><div class="ds-v"${color?` style="color:${color}"`:''}>${val}</div>${sub?`<div class="ds-s">${sub}</div>`:''}</div>`;
+}
+function daySummaryHtml(rows,booked){
   const N=rows.length;if(!N)return'';
   const done=rows.filter(r=>bagVal(r)!==null);const X=done.length;
   const B=done.reduce((s,r)=>s+bagVal(r),0);
-  const fw=fwDay(rows);
-  const fwHtml=fw.n?(()=>{const d=fw.bags-fw.n;const p=pn(fw.bags,fw.n);
-    return `<div class="day-stat fw"><div class="day-stat-label">FW (≤${FW_CUTOFF})</div><div class="day-stat-value" style="color:${fw.entered?bc(p):'var(--text3)'};">${fw.bags}/${fw.n}</div><div style="font-size:10px;color:var(--text3);margin-top:4px;">${fw.entered<fw.n?fw.entered+'/'+fw.n+' inseriti':(d>=0?'✓ target':d+' vs target')}</div></div>`;})()
-    :`<div class="day-stat fw"><div class="day-stat-label">FW (≤${FW_CUTOFF})</div><div class="day-stat-value" style="color:var(--text3);">—</div><div style="font-size:10px;color:var(--text3);margin-top:4px;">nessun volo FW</div></div>`;
-  if(!X){
-    return `<div class="live-wrap"><div class="live-head">▶ Progressivo live <span class="badge neu">0/${N} voli inseriti</span></div>
-    <div class="day-summary-grid live-grid">${fwHtml}</div></div>`;
-  }
-  const d=B-X;const p=pn(B,X);const r=ratioStr(B,X);
-  const proj=Math.round(B/X*N);const pd=proj-N;
-  const trend=d>0?`<span class="badge pos">▲ sopra target ${ds(d)}${d}</span>`:d<0?`<span class="badge neg">▼ sotto target ${d}</span>`:`<span class="badge neu">= in linea</span>`;
-  const complete=X===N;
-  return `<div class="live-wrap"><div class="live-head">▶ Progressivo live <span class="badge neu">${X}/${N} voli inseriti</span> ${trend}</div>
-  <div class="day-summary-grid live-grid">
-    <div class="day-stat"><div class="day-stat-label">Voli inseriti</div><div class="day-stat-value">${X}<span style="font-size:12px;color:var(--text3);font-weight:500;"> / ${N}</span></div></div>
-    <div class="day-stat accent"><div class="day-stat-label">Bagagli fatti</div><div class="day-stat-value" style="color:${bc(p)};">${B}</div></div>
-    <div class="day-stat"><div class="day-stat-label">Target finora</div><div class="day-stat-value">${X}</div></div>
-    <div class="day-stat"><div class="day-stat-label">Scostamento</div><div class="day-stat-value" style="color:${d>=0?'var(--green)':'var(--red)'};">${ds(d)}${d}</div></div>
-    <div class="day-stat accent"><div class="day-stat-label">Ratio finora</div><div class="day-stat-value" style="color:${bc(p)};">${r}</div></div>
-    <div class="day-stat"><div class="day-stat-label">${complete?'Chiusura':'Proiezione fine gg'}</div><div class="day-stat-value" style="color:${pd>=0?'var(--green)':'var(--red)'};">${proj}<span style="font-size:12px;color:var(--text3);font-weight:500;"> / ${N}</span></div></div>
-    ${fwHtml}
-  </div></div>`;
-}
-function dayStatGridHtml(n,booked,bags,td,tp){
-  const ratio=n>0?ratioStr(bags,n):'—';
-  return `<div class="day-summary-grid">
-    <div class="day-stat"><div class="day-stat-label">Voli</div><div class="day-stat-value">${n}</div></div>
-    <div class="day-stat"><div class="day-stat-label">Booked</div><div class="day-stat-value">${booked.toLocaleString('it')}</div></div>
-    <div class="day-stat accent"><div class="day-stat-label">Bagagli</div><div class="day-stat-value" style="color:${bc(tp)};">${bags}</div></div>
-    <div class="day-stat"><div class="day-stat-label">Target</div><div class="day-stat-value">${n}</div></div>
-    <div class="day-stat"><div class="day-stat-label">Delta</div><div class="day-stat-value" style="color:${td>=0?'var(--green)':'var(--red)'};">${ds(td)}${td}</div></div>
-    <div class="day-stat"><div class="day-stat-label">%</div><div class="day-stat-value" style="color:${bc(tp)};">${tp}%</div></div>
-    <div class="day-stat accent"><div class="day-stat-label">Ratio</div><div class="day-stat-value" style="color:${bc(tp)};">${ratio}</div></div>
+  const td=B-N;const tp=pn(B,N);
+  const sgn=v=>(v>0?'+':'')+v;const gc=v=>v>=0?'var(--green)':'var(--red)';
+  // Giornata
+  let h=`<div class="ds-group"><div class="ds-gl">Giornata</div>
+    ${dsTile('Voli · Target',N)}
+    ${dsTile('Booked',(+booked||0).toLocaleString('it'))}
+    ${dsTile('Bagagli',B,bc(tp))}
+    ${dsTile('Delta',sgn(td),gc(td))}
+    ${dsTile('Ratio',r2(B,N),bc(tp),tp+'%','ds-accent')}
   </div>`;
+  // Live
+  if(X>0&&X<N){
+    const d=B-X;const p=pn(B,X);const proj=Math.round(B/X*N);
+    h+=`<div class="ds-group"><div class="ds-gl">Live · ${X}/${N} inseriti</div>
+      ${dsTile('Scost.',sgn(d),gc(d),'vs '+X+' voli')}
+      ${dsTile('Ratio',r2(B,X),bc(p),'','ds-accent')}
+      ${dsTile('Proiez.',proj+'<span class="ds-of">/'+N+'</span>',gc(proj-N),'a fine gg')}
+    </div>`;
+  } else if(X===0){
+    h+=`<div class="ds-group"><div class="ds-gl">Live · 0/${N} inseriti</div>${dsTile('Scost.','—')}</div>`;
+  }
+  // FW
+  const fw=fwDay(rows);
+  if(fw.n){
+    const p=pn(fw.bags,fw.n);
+    h+=`<div class="ds-group"><div class="ds-gl">FW ≤${FW_CUTOFF}</div>${dsTile('Bag/Voli',fw.bags+'<span class="ds-of">/'+fw.n+'</span>',fw.entered?bc(p):'var(--text3)',fw.entered<fw.n?fw.entered+'/'+fw.n+' ins.':(fw.bags>=fw.n?'✓ target':sgn(fw.bags-fw.n)),'ds-fw')}</div>`;
+  }
+  return `<div class="ds-wrap">${h}</div>`;
 }
 function renderFT(){
   const data=gd();const d=curDate;
@@ -1776,12 +1781,12 @@ function renderFT(){
     document.getElementById('daily-totals').innerHTML='';return;
   }
   const tt=dayTot(flights);const td=tt.bags-tt.n;const tp=pn(tt.bags,tt.n);
-  document.getElementById('daily-totals').innerHTML=dayStatGridHtml(tt.n,tt.booked,tt.bags,td,tp)+liveProgressHtml(flights);
+  document.getElementById('daily-totals').innerHTML=daySummaryHtml(flights,tt.booked);
   const fwSet=new Set(fwIdx(flights));
   let html='';
   flights.forEach((f,i)=>{
     const b=f.bags!==null&&f.bags!==undefined&&f.bags!==''?+f.bags:null;
-    const delta=b!==null?b-1:'—';const dCl=b!==null?dc(b-1):'neu';const pct=b!==null?ps(b,1):'—';const pc=b!==null?pn(b,1):0;
+    const delta=b!==null?b-1:'—';const dCl=b!==null?dc(b-1):'neu';const pct=b!==null?pn(b,1)+'%':'—';const pc=b!==null?pn(b,1):0;
     html+=`<tr><td><span class="carrier-badge">${f.carrier||'FR'}</span></td><td class="mono" style="font-weight:700;letter-spacing:.04em;">${f.dep}</td><td><span class="dest-code">${f.to}</span></td><td class="center std-time">${f.std}${fwSet.has(i)?'<span class="fw-badge">FW</span>':''}</td><td class="right" style="min-width:88px;"><input type="number" class="bags-input" id="bk-${i}" value="${+f.booked||0}" min="0" placeholder="—" oninput="liveUpdBooked(${i})" style="width:76px;"></td><td class="right"><input type="number" class="bags-input" id="bi-${i}" value="${b!==null?b:''}" min="0" placeholder="—" oninput="liveUpd(${i})" style="width:72px;"></td><td class="right mono">1</td><td class="right mono" id="bd-${i}"><span class="badge ${dCl}">${b!==null?(ds(b-1)+(b-1)):'—'}</span></td><td class="right mono" id="bp-${i}" style="color:${b!==null?bc(pc):'var(--text3)'};">${pct}</td><td class="right"><button class="btn btn-danger btn-xs" onclick="delFlight(${i})">&#10005;</button></td></tr>`;
   });
   document.getElementById('flights-body').innerHTML=html;
@@ -1825,7 +1830,7 @@ function updateLiveTotals(){
   const totEl=document.getElementById('daily-totals');
   const src=gd()[curDate]||[];
   const rows=flights.map((b,i)=>({std:(src[i]||{}).std||'',bags:b}));
-  if(totEl)totEl.innerHTML=dayStatGridHtml(n,booked,bags,td,tp)+liveProgressHtml(rows);
+  if(totEl)totEl.innerHTML=daySummaryHtml(rows,booked);
   const ft=document.getElementById('flights-foot');
   if(ft&&ft.style.display!=='none')ft.innerHTML=`<td colspan="4">TOTALE GIORNO</td><td class="right mono">${booked.toLocaleString('it')}</td><td class="right mono" style="color:${bc(tp)};font-weight:700;">${bags}</td><td class="right mono">${n}</td><td class="right mono"><span class="badge ${dc(td)}">${ds(td)}${td}</span></td><td class="right mono" style="color:${bc(tp)}">${tp}%</td><td></td>`;
 }
@@ -1836,7 +1841,7 @@ function liveUpd(i){
   if(!isNaN(v)&&v>=0){
     const d=v-1;
     document.getElementById('bd-'+i).innerHTML=`<span class="badge ${dc(d)}">${ds(d)}${d}</span>`;
-    document.getElementById('bp-'+i).textContent=ps(v,1);
+    document.getElementById('bp-'+i).textContent=pn(v,1)+'%';
     document.getElementById('bp-'+i).style.color=bc(pn(v,1));
   } else {
     document.getElementById('bd-'+i).innerHTML=`<span class="badge neu">—</span>`;
