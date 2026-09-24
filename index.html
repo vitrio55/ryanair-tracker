@@ -467,6 +467,10 @@ input::-webkit-calendar-picker-indicator{filter:invert(.5);cursor:pointer;}
 .ds-l{font-size:9px;font-weight:600;letter-spacing:.04em;text-transform:uppercase;color:var(--text3);white-space:nowrap;}
 .ds-v{font-size:16px;font-weight:600;color:var(--text);font-variant-numeric:tabular-nums;line-height:1.25;white-space:nowrap;}
 .ds-of{font-size:11px;color:var(--text3);font-weight:500;}
+.live-row{flex-basis:100%;display:flex;align-items:center;gap:14px;flex-wrap:wrap;margin-top:10px;}
+.live-head{display:flex;align-items:center;gap:8px;flex-wrap:wrap;font-size:11px;font-weight:600;letter-spacing:.04em;text-transform:uppercase;color:var(--text3);}
+.ds-proj{display:flex;align-items:center;gap:10px;padding:6px 10px;border:1px solid var(--border);border-radius:var(--radius);background:var(--surface);border-top:2px solid var(--accent);}
+.ds-spark{display:block;}
 .ds-s{font-size:9.5px;color:var(--text3);white-space:nowrap;}
 @media(max-width:480px){.ds-group{flex-wrap:wrap;}.ds-tile{min-width:52px;}}
 .fw-badge{display:inline-block;margin-left:6px;padding:1px 5px;border-radius:4px;font-size:9.5px;font-weight:700;letter-spacing:.04em;background:rgba(142,68,173,.14);color:#8e44ad;vertical-align:middle;}
@@ -682,7 +686,7 @@ input,select,td,th,.btn,.tab-btn{transition:background .25s,border-color .25s,co
     <div style="position:relative;height:260px;"><canvas id="chartMonthly" role="img" aria-label="Grafico mensile bagagli vs voli"></canvas></div>
   </div>
   <div class="chart-card">
-    <div id="chart-ratio-title" class="chart-title">Ratio Bagagli / Voli per mese &nbsp;<span style="color:var(--text3);font-size:.78rem;font-weight:400;">(target = 1.00)</span></div>
+    <div id="chart-ratio-title" class="chart-title">Ratio Bagagli / Voli per mese &nbsp;<span style="color:var(--text3);font-size:.78rem;font-weight:400;">(target = 1,00)</span></div>
     <div style="position:relative;height:200px;"><canvas id="chartPct" role="img" aria-label="Percentuale target per mese"></canvas></div>
   </div>
 </div>
@@ -1029,7 +1033,7 @@ async function loadKioskFromSupabase(){
 // ── SUPABASE CONFIG ─────────────────────────────────────────────────────────
 const SUPA_CONF_KEY='ry_supa_conf';
 // ── Credenziali di default (cambiale qui se cambi progetto) ──────────────────
-const APP_VERSION='2.1.0';
+const APP_VERSION='2.1.1';
 const APP_UPDATED='02/05/2026';
 const SUPA_DEFAULT={
   url:'https://hbfiaawypdsnfairulcy.supabase.co',
@@ -1299,7 +1303,7 @@ function wklbl(w){const d=new Date(w+'T00:00:00');const t=new Date(d);t.setDate(
 function cy(){return new Date().getFullYear();}
 function cmk(){const d=new Date();return d.getFullYear()+'-'+pad(d.getMonth()+1);}
 function pn(b,f){return f===0?0:Math.round(b/f*100);}
-function ps(b,f){return f===0?'—':(b/f*100).toFixed(1)+'%';}
+function ps(b,f){return f===0?'—':fmtPct(b/f*100);}
 function dc(d){return d>0?'pos':d<0?'neg':'neu';}
 function ds(d){return d>0?'+':'';}
 function bc(p){return p>=100?'#2ecc71':p>=80?'#FFD100':'#e74c3c';}
@@ -1383,7 +1387,9 @@ let _dashChartGran='month';  // 'month' | 'week' | 'quarter'
 function setDashPeriod(p){_dashPeriodFilter=p;renderDashboard();}
 function setDashCascadeYear(y){_dashCascadeYear=y;renderDashboard();}
 function setDashChartGran(g){_dashChartGran=g;renderDashboard();}
-function ratioStr(b,f){return f===0?'—':(b/f).toFixed(3);}
+function fmt2(x){return (+x).toFixed(2).replace('.',',');}
+function fmtPct(x){return (+x).toFixed(1).replace('.',',')+'%';}
+function ratioStr(b,f){return f===0?'—':fmt2(b/f);}
 function ratioIT(b,f){return f===0?'—':(b/f).toFixed(2).replace('.',',');}
 function weeklyKpiCardHtml(today){
   const wk=getWeeklyKPI();const wd=wk.bags-wk.flights;const wp=pn(wk.bags,wk.flights);const wRatio=ratioStr(wk.bags,wk.flights);
@@ -1449,7 +1455,7 @@ function renderDashboard(){
     kpiHtml=`
 <div class="kpi-card ${ta.flights===0?'blue':dc(dd)}"><div class="kpi-label">Bagagli Oggi — ${fmtDate(today)}</div><div class="kpi-main"><div class="kpi-value mono" style="color:${ta.flights>0?bc(dp):'var(--text3)'};">${dRatio}</div></div><div class="kpi-row"><div class="kpi-sub">${ta.bags} bag su ${ta.flights} voli</div>${ta.flights>0?`<div class="kpi-delta ${dc(dd)}">${ds(dd)}${dd}</div>`:'<div class="kpi-delta neu">—</div>'}</div><div class="kpi-progress"><div class="kpi-progress-bar" style="width:${Math.min(dp,100)}%;background:${bc(dp)};"></div></div><div class="kpi-missing">${ta.flights===0?'Nessun dato oggi':dp>=100?'<span style="color:var(--green)">✓ TARGET</span>':'mancano <span style="color:var(--red);">'+Math.max(0,ta.flights-ta.bags)+'</span>'}</div></div>
 <div class="kpi-card blue"><div class="kpi-label">Voli Oggi</div><div class="kpi-main"><div class="kpi-value mono">${ta.flights}</div><div class="kpi-unit">voli</div></div><div class="kpi-row"><div class="kpi-sub">target: ${ta.flights} bag</div></div></div>
-<div class="kpi-card ${kioskCardClass(kd.pct)}"><div class="kpi-label">Kiosk% Oggi</div><div class="kpi-main"><div class="kpi-value" style="color:${kpcc(kd.pct)};">${kd.pct>0?kd.pct.toFixed(1)+'%':'—'}</div></div><div class="kpi-row"><div class="kpi-sub">${kd.totT} ckd bags</div></div><div class="kpi-progress"><div class="kpi-progress-bar" style="width:${Math.min(kd.pct,100)}%;background:${kpcc(kd.pct)};"></div></div></div>
+<div class="kpi-card ${kioskCardClass(kd.pct)}"><div class="kpi-label">Kiosk% Oggi</div><div class="kpi-main"><div class="kpi-value" style="color:${kpcc(kd.pct)};">${kd.pct>0?fmtPct(kd.pct):'—'}</div></div><div class="kpi-row"><div class="kpi-sub">${kd.totT} ckd bags</div></div><div class="kpi-progress"><div class="kpi-progress-bar" style="width:${Math.min(kd.pct,100)}%;background:${kpcc(kd.pct)};"></div></div></div>
 ${weeklyKpiCardHtml(today)}`;
   } else {
     // 'month' = mese corrente (dinamico) oppure 'YYYY-MM' = mese specifico scelto dal filtro a cascata
@@ -1466,7 +1472,7 @@ ${weeklyKpiCardHtml(today)}`;
     kpiHtml=`
 <div class="kpi-card ${dc(delta)}"><div class="kpi-label">Bagagli — ${mkfull(selMk)}</div><div class="kpi-main"><div class="kpi-value mono" style="color:${bc(p)};">${ratio}</div></div><div class="kpi-row"><div class="kpi-sub">${mData.bags.toLocaleString('it')} bag su ${mData.flights.toLocaleString('it')} voli · ${mData.days}gg</div><div class="kpi-delta ${dc(delta)}">${ds(delta)}${delta}</div></div><div class="kpi-progress"><div class="kpi-progress-bar" style="width:${Math.min(p,100)}%;background:${bc(p)};"></div></div><div class="kpi-missing">${p>=100?'<span style="color:var(--green)">✓ TARGET</span>':'mancano <span style="color:var(--red);font-weight:600;">'+Math.max(0,mData.flights-mData.bags)+'</span> bag'} &nbsp;|&nbsp; vs ${mname(prevMk)}: <strong style="color:${vsPrec>=0?'var(--green)':'var(--red)'};">${ds(vsPrec)}${vsPrec}</strong></div></div>
 <div class="kpi-card blue"><div class="kpi-label">Voli — ${mkfull(selMk)}</div><div class="kpi-main"><div class="kpi-value mono">${mData.flights.toLocaleString('it')}</div><div class="kpi-unit">voli</div></div><div class="kpi-row"><div class="kpi-sub">${mData.days} giorni operativi</div></div></div>
-<div class="kpi-card ${kioskCardClass(km.pct)}"><div class="kpi-label">Kiosk% ${mname(selMk)}</div><div class="kpi-main"><div class="kpi-value" style="color:${kpcc(km.pct)};">${km.pct>0?km.pct.toFixed(1)+'%':'—'}</div></div><div class="kpi-row"><div class="kpi-sub">${km.totT} ckd · ${km.days} giorni</div></div><div class="kpi-progress"><div class="kpi-progress-bar" style="width:${Math.min(km.pct,100)}%;background:${kpcc(km.pct)};"></div></div></div>
+<div class="kpi-card ${kioskCardClass(km.pct)}"><div class="kpi-label">Kiosk% ${mname(selMk)}</div><div class="kpi-main"><div class="kpi-value" style="color:${kpcc(km.pct)};">${km.pct>0?fmtPct(km.pct):'—'}</div></div><div class="kpi-row"><div class="kpi-sub">${km.totT} ckd · ${km.days} giorni</div></div><div class="kpi-progress"><div class="kpi-progress-bar" style="width:${Math.min(km.pct,100)}%;background:${kpcc(km.pct)};"></div></div></div>
 ${isCurrentMonth?weeklyKpiCardHtml(today):''}`;
   }
   document.getElementById('dash-kpis').innerHTML=kpiHtml;
@@ -1497,7 +1503,7 @@ ${isCurrentMonth?weeklyKpiCardHtml(today):''}`;
   const chartMainTitle=document.getElementById('chart-main-title');
   if(chartMainTitle)chartMainTitle.innerHTML=chartTitle;
   const chartRatioTitle=document.getElementById('chart-ratio-title');
-  if(chartRatioTitle)chartRatioTitle.innerHTML=`Ratio Bagagli / Voli ${ratioSuffix} &nbsp;<span style="color:var(--text3);font-size:.78rem;font-weight:400;">(target = 1.00)</span>`;
+  if(chartRatioTitle)chartRatioTitle.innerHTML=`Ratio Bagagli / Voli ${ratioSuffix} &nbsp;<span style="color:var(--text3);font-size:.78rem;font-weight:400;">(target = 1,00)</span>`;
 
   if(mChart)mChart.destroy();
   mChart=new Chart(document.getElementById('chartMonthly'),{
@@ -1519,7 +1525,7 @@ ${isCurrentMonth?weeklyKpiCardHtml(today):''}`;
     }
   });
 
-  const rd=labels.map((_,i)=>flightData[i]===0?null:parseFloat((bagData[i]/flightData[i]).toFixed(3)));
+  const rd=labels.map((_,i)=>flightData[i]===0?null:parseFloat((bagData[i]/flightData[i]).toFixed(2)));
   if(pChart)pChart.destroy();
   pChart=new Chart(document.getElementById('chartPct'),{
     plugins:[ChartDataLabels],
@@ -1532,17 +1538,17 @@ ${isCurrentMonth?weeklyKpiCardHtml(today):''}`;
        pointBorderColor:'rgba(0,0,0,0)',
        pointRadius:5,pointHoverRadius:7,spanGaps:true,
        datalabels:{anchor:'top',align:'top',offset:5,
-         formatter:(v,ctx)=>{if(v===null)return'';const prev=ctx.dataset.data[ctx.dataIndex-1];const trend=prev===null||prev===undefined?'':v>prev?'▲':v<prev?'▼':'';return(trend?trend+' ':'')+v.toFixed(3);},
+         formatter:(v,ctx)=>{if(v===null)return'';const prev=ctx.dataset.data[ctx.dataIndex-1];const trend=prev===null||prev===undefined?'':v>prev?'▲':v<prev?'▼':'';return(trend?trend+' ':'')+fmt2(v);},
          color:ctx=>{const v=ctx.dataset.data[ctx.dataIndex];return v===null?'#8a96b0':bc(Math.round(v*100));},
          font:{size:10,weight:'700'}}},
-      {label:'Target 1.00',data:labels.map(()=>1),borderColor:'rgba(46,204,113,.6)',borderDash:[6,4],borderWidth:1.5,pointRadius:0,fill:false,datalabels:{display:false}}
+      {label:'Target 1,00',data:labels.map(()=>1),borderColor:'rgba(46,204,113,.6)',borderDash:[6,4],borderWidth:1.5,pointRadius:0,fill:false,datalabels:{display:false}}
     ]},
     options:{responsive:true,maintainAspectRatio:false,
       layout:{padding:{top:28,left:4,right:4}},
-      plugins:{legend:{display:false},tooltip:{callbacks:{label:ctx=>ctx.datasetIndex===0?` Ratio: ${ctx.raw}`:' Target: 1.000'}},datalabels:{display:true}},
+      plugins:{legend:{display:false},tooltip:{callbacks:{label:ctx=>ctx.datasetIndex===0?` Ratio: ${fmt2(ctx.raw)}`:' Target: 1,00'}},datalabels:{display:true}},
       scales:{
         x:{grid:{color:'rgba(42,52,72,.8)'},ticks:{color:'#8a96b0',font:{size:11},maxRotation:_dashChartGran==='week'?45:0,maxTicksLimit:_dashChartGran==='week'?16:12}},
-        y:{grid:{color:'rgba(42,52,72,.8)'},ticks:{color:'#8a96b0',font:{size:11},callback:v=>v.toFixed(2)},min:0.7,suggestedMax:1.25}
+        y:{grid:{color:'rgba(42,52,72,.8)'},ticks:{color:'#8a96b0',font:{size:11},callback:v=>fmt2(v)},min:0.7,suggestedMax:1.25}
       }
     }
   });
@@ -1577,7 +1583,7 @@ function renderKioskDashKPIs(){
   const kpiHtml=(label,pct,sub,extra)=>`
     <div class="kpi-card ${kioskCardClass(pct)}" style="position:relative;overflow:hidden;">
       <div class="kpi-label">${label}</div>
-      <div class="kpi-main"><div class="kpi-value" style="color:${kioskPctColor(pct)};">${pct>0?pct.toFixed(1)+'%':'—'}</div></div>
+      <div class="kpi-main"><div class="kpi-value" style="color:${kioskPctColor(pct)};">${pct>0?fmtPct(pct):'—'}</div></div>
       <div class="kpi-sub" style="margin-top:4px;">${sub}</div>
       ${extra||''}
       <div class="kpi-progress" style="margin-top:10px;"><div class="kpi-progress-bar" style="width:${Math.min(pct,100)}%;background:${kioskPctColor(pct)};"></div></div>
@@ -1737,38 +1743,52 @@ function r2(b,f){return f>0?(b/f).toFixed(2).replace('.',','):'—';}
 function dsTile(label,val,color,sub,cls){
   return `<div class="ds-tile${cls?' '+cls:''}"><div class="ds-l">${label}</div><div class="ds-v"${color?` style="color:${color}"`:''}>${val}</div>${sub?`<div class="ds-s">${sub}</div>`:''}</div>`;
 }
+function sparkProjSvg(seq,N,proj){
+  // seq = bagagli cumulati sui voli inseriti (in ordine STD); target = 1 bag/volo; proiezione tratteggiata fino a N
+  const W=120,H=34,P=3;const X=seq.length;const yMax=Math.max(N,proj,seq[X-1]||0,1);
+  const sx=i=>P+i/N*(W-2*P);const sy=v=>H-P-v/yMax*(H-2*P);
+  const pts=[[0,0]].concat(seq.map((v,i)=>[i+1,v]));
+  const act=pts.map(([i,v])=>sx(i).toFixed(1)+','+sy(v).toFixed(1)).join(' ');
+  const last=pts[pts.length-1];const col=proj>=N?'var(--green)':'var(--red)';
+  return `<svg class="ds-spark" viewBox="0 0 ${W} ${H}" width="${W}" height="${H}" aria-label="Andamento cumulato vs target">
+    <line x1="${sx(0)}" y1="${sy(0)}" x2="${sx(N)}" y2="${sy(N)}" stroke="var(--text3)" stroke-width="1" stroke-dasharray="2 2"/>
+    <line x1="${sx(last[0])}" y1="${sy(last[1])}" x2="${sx(N)}" y2="${sy(proj)}" stroke="${col}" stroke-width="1.2" stroke-dasharray="3 2" opacity=".7"/>
+    <polyline points="${act}" fill="none" stroke="${col}" stroke-width="1.6" stroke-linejoin="round"/>
+    <circle cx="${sx(last[0])}" cy="${sy(last[1])}" r="2" fill="${col}"/>
+  </svg>`;
+}
 function daySummaryHtml(rows,booked){
   const N=rows.length;if(!N)return'';
   const done=rows.filter(r=>bagVal(r)!==null);const X=done.length;
   const B=done.reduce((s,r)=>s+bagVal(r),0);
   const td=B-N;const tp=pn(B,N);
   const sgn=v=>(v>0?'+':'')+v;const gc=v=>v>=0?'var(--green)':'var(--red)';
-  // Giornata
+  // Giornata + FW
+  const fw=fwDay(rows);
+  const fwTile=fw.n?(()=>{const p=pn(fw.bags,fw.n);
+    return dsTile('FW ≤'+FW_CUTOFF,fw.bags+'<span class="ds-of">/'+fw.n+'</span>',fw.entered?bc(p):'var(--text3)',fw.entered<fw.n?fw.entered+'/'+fw.n+' ins.':(fw.bags>=fw.n?'✓ target':sgn(fw.bags-fw.n)),'ds-fw');})()
+    :dsTile('FW ≤'+FW_CUTOFF,'—','var(--text3)','nessun volo','ds-fw');
   let h=`<div class="ds-group"><div class="ds-gl">Giornata</div>
     ${dsTile('Voli · Target',N)}
     ${dsTile('Booked',(+booked||0).toLocaleString('it'))}
     ${dsTile('Bagagli',B,bc(tp))}
     ${dsTile('Delta',sgn(td),gc(td))}
     ${dsTile('Ratio',r2(B,N),bc(tp),tp+'%','ds-accent')}
+    ${fwTile}
   </div>`;
-  // Live
-  if(X>0&&X<N){
+  // Live: solo intestazione a badge + box proiezione con sparkline
+  let live='';
+  if(X===0){
+    live=`<div class="live-head">▶ Progressivo live <span class="badge neu">0/${N} voli inseriti</span></div>`;
+  } else {
     const d=B-X;const p=pn(B,X);const proj=Math.round(B/X*N);
-    h+=`<div class="ds-group"><div class="ds-gl">Live · ${X}/${N} inseriti</div>
-      ${dsTile('Scost.',sgn(d),gc(d),'vs '+X+' voli')}
-      ${dsTile('Ratio',r2(B,X),bc(p),'','ds-accent')}
-      ${dsTile('Proiez.',proj+'<span class="ds-of">/'+N+'</span>',gc(proj-N),'a fine gg')}
-    </div>`;
-  } else if(X===0){
-    h+=`<div class="ds-group"><div class="ds-gl">Live · 0/${N} inseriti</div>${dsTile('Scost.','—')}</div>`;
+    const trend=d>0?`<span class="badge pos">▲ sopra target ${sgn(d)}</span>`:d<0?`<span class="badge neg">▼ sotto target ${d}</span>`:`<span class="badge neu">= in linea</span>`;
+    const rCls=p>=100?'pos':p>=80?'neu':'neg';
+    let cum=0;const seq=done.map(r=>cum+=bagVal(r));
+    const projBox=X<N?`<div class="ds-proj"><div><div class="ds-l">Proiezione fine gg</div><div class="ds-v" style="color:${gc(proj-N)}">${proj}<span class="ds-of">/${N}</span></div></div>${sparkProjSvg(seq,N,proj)}</div>`:'';
+    live=`<div class="live-head">▶ Progressivo live <span class="badge neu">${X}/${N} voli inseriti</span> ${trend} <span class="badge ${rCls}">Ratio ${r2(B,X)}</span></div>${projBox}`;
   }
-  // FW
-  const fw=fwDay(rows);
-  if(fw.n){
-    const p=pn(fw.bags,fw.n);
-    h+=`<div class="ds-group"><div class="ds-gl">FW ≤${FW_CUTOFF}</div>${dsTile('Bag/Voli',fw.bags+'<span class="ds-of">/'+fw.n+'</span>',fw.entered?bc(p):'var(--text3)',fw.entered<fw.n?fw.entered+'/'+fw.n+' ins.':(fw.bags>=fw.n?'✓ target':sgn(fw.bags-fw.n)),'ds-fw')}</div>`;
-  }
-  return `<div class="ds-wrap">${h}</div>`;
+  return `<div class="ds-wrap">${h}</div><div class="live-row">${live}</div>`;
 }
 function renderFT(){
   const data=gd();const d=curDate;
@@ -2519,10 +2539,10 @@ function renderYTD(){
   );const mk=cmk();
   let mh='';let tf=0,tb=0,td=0;
   sm.forEach(m=>{const{flights,bags,days}=months[m];const delta=bags-flights;const p=pn(bags,flights);const ic=m===mk;tf+=flights;tb+=bags;td+=days;const kpct=getKioskMonth(m).pct;
-    mh+=`<tr${ic?' class="today-row"':''}><td><strong>${mkfull(m)}</strong>${ic?' <span class="badge ry" style="font-size:.65rem;">CORRENTE</span>':''}</td><td class="right mono">${days}</td><td class="right mono">${flights.toLocaleString('it')}</td><td class="right mono">${bags.toLocaleString('it')}</td><td class="right mono">${flights.toLocaleString('it')}</td><td class="right mono"><span class="badge ${dc(delta)}">${ds(delta)}${delta}</span></td><td class="right mono" style="color:${bc(p)};font-weight:600;">${ratioIT(bags,flights)}</td><td class="right mono">${ps(bags,flights)}</td><td class="right mono" style="color:${kpct>0?kioskPctColor(kpct):'var(--text3)'};font-weight:600;">${kpct>0?kpct.toFixed(1)+'%':'—'}</td><td><div class="pct-bar"><div class="mini-bar"><div class="mini-bar-fill" style="width:${Math.min(p,100)}%;background:${bc(p)};"></div></div><span style="font-size:.78rem;color:var(--text3);min-width:38px;text-align:right;">${p}%</span></div></td></tr>`;
+    mh+=`<tr${ic?' class="today-row"':''}><td><strong>${mkfull(m)}</strong>${ic?' <span class="badge ry" style="font-size:.65rem;">CORRENTE</span>':''}</td><td class="right mono">${days}</td><td class="right mono">${flights.toLocaleString('it')}</td><td class="right mono">${bags.toLocaleString('it')}</td><td class="right mono">${flights.toLocaleString('it')}</td><td class="right mono"><span class="badge ${dc(delta)}">${ds(delta)}${delta}</span></td><td class="right mono" style="color:${bc(p)};font-weight:600;">${ratioIT(bags,flights)}</td><td class="right mono">${ps(bags,flights)}</td><td class="right mono" style="color:${kpct>0?kioskPctColor(kpct):'var(--text3)'};font-weight:600;">${kpct>0?fmtPct(kpct):'—'}</td><td><div class="pct-bar"><div class="mini-bar"><div class="mini-bar-fill" style="width:${Math.min(p,100)}%;background:${bc(p)};"></div></div><span style="font-size:.78rem;color:var(--text3);min-width:38px;text-align:right;">${p}%</span></div></td></tr>`;
   });
   document.getElementById('month-body').innerHTML=mh||`<tr><td colspan="10"><div class="empty"><div class="empty-icon">✈</div><div class="empty-text">Nessun dato mensile.</div></div></td></tr>`;
-  const mtd=tb-tf;document.getElementById('month-foot').innerHTML=`<td>TOTALE YTD</td><td class="right mono">${td}</td><td class="right mono">${tf.toLocaleString('it')}</td><td class="right mono">${tb.toLocaleString('it')}</td><td class="right mono">${tf.toLocaleString('it')}</td><td class="right mono">${ds(mtd)}${mtd}</td><td class="right mono" style="color:${bc(pn(tb,tf))};font-weight:700;">${ratioIT(tb,tf)}</td><td class="right mono">${ps(tb,tf)}</td><td class="right mono" style="color:${kioskPctColor(getKioskYTD().pct)};font-weight:700;">${getKioskYTD().pct>0?getKioskYTD().pct.toFixed(1)+'%':'—'}</td><td></td>`;
+  const mtd=tb-tf;document.getElementById('month-foot').innerHTML=`<td>TOTALE YTD</td><td class="right mono">${td}</td><td class="right mono">${tf.toLocaleString('it')}</td><td class="right mono">${tb.toLocaleString('it')}</td><td class="right mono">${tf.toLocaleString('it')}</td><td class="right mono">${ds(mtd)}${mtd}</td><td class="right mono" style="color:${bc(pn(tb,tf))};font-weight:700;">${ratioIT(tb,tf)}</td><td class="right mono">${ps(tb,tf)}</td><td class="right mono" style="color:${kioskPctColor(getKioskYTD().pct)};font-weight:700;">${getKioskYTD().pct>0?getKioskYTD().fmtPct(pct):'—'}</td><td></td>`;
 
   // ── Kiosk YTD KPIs strip ──────────────────────────────────────────────────
   const kytd=getKioskYTD();
@@ -2532,13 +2552,13 @@ function renderYTD(){
     const qs=[1,2,3,4].map(q=>{const qd=getKioskQ(q);const ic=q===currentQ();
       return `<div class="kpi-card ${qd.pct>=80?'green':qd.pct>=60?'blue':'red'}">
         <div class="kpi-label">Q${q} ${year} Kiosk%${ic?' ●':''}</div>
-        <div class="kpi-main"><div class="kpi-value" style="color:${kpcc(qd.pct)};">${qd.pct>0?qd.pct.toFixed(1)+'%':'—'}</div></div>
+        <div class="kpi-main"><div class="kpi-value" style="color:${kpcc(qd.pct)};">${qd.pct>0?fmtPct(qd.pct):'—'}</div></div>
         <div class="kpi-sub">${qd.totT} ckd · ${qd.days} giorni</div>
         <div class="kpi-progress"><div class="kpi-progress-bar" style="width:${Math.min(qd.pct,100)}%;background:${kpcc(qd.pct)};"></div></div>
       </div>`;
     }).join('');
     kEl.style.cssText='display:grid;grid-template-columns:repeat(4,1fr);gap:12px;';
-    kEl.innerHTML=`<div style="grid-column:1/-1;font-size:11px;font-weight:500;letter-spacing:.04em;text-transform:uppercase;color:var(--text3);padding-bottom:4px;border-bottom:1px solid var(--border);">📊 Kiosk Performance — YTD ${year} &nbsp;·&nbsp; <span style="color:${kpcc(kytd.pct)};font-weight:700;">${kytd.pct.toFixed(1)}%</span> media · ${kytd.totT} ckd · ${kytd.days} giorni</div>${qs}`;
+    kEl.innerHTML=`<div style="grid-column:1/-1;font-size:11px;font-weight:500;letter-spacing:.04em;text-transform:uppercase;color:var(--text3);padding-bottom:4px;border-bottom:1px solid var(--border);">📊 Kiosk Performance — YTD ${year} &nbsp;·&nbsp; <span style="color:${kpcc(kytd.pct)};font-weight:700;">${fmtPct(kytd.pct)}</span> media · ${kytd.totT} ckd · ${kytd.days} giorni</div>${qs}`;
   } else if(kEl){kEl.innerHTML='';}
   // weeks
   // WEEKS — apply month filter if active
@@ -2559,7 +2579,7 @@ function renderYTD(){
   let wh='';let wf=0,wb=0,wd=0;
   sw.forEach(wk=>{const{flights,bags,days}=weeks[wk];const delta=bags-flights;const p=pn(bags,flights);const ic=wk===twk;wf+=flights;wb+=bags;wd+=days;
     const kwpct=getKioskWeek(wk).pct;
-    wh+=`<tr${ic?' class="today-row"':''}><td><span style="font-size:.85rem;">${wklbl(wk)}</span>${ic?' <span class="badge ry" style="font-size:.65rem;">CORRENTE</span>':''}</td><td class="right mono">${days}</td><td class="right mono">${flights.toLocaleString('it')}</td><td class="right mono">${bags.toLocaleString('it')}</td><td class="right mono">${flights.toLocaleString('it')}</td><td class="right mono"><span class="badge ${dc(delta)}">${ds(delta)}${delta}</span></td><td class="right mono" style="color:${bc(p)};font-weight:600;">${ratioIT(bags,flights)}</td><td class="right mono">${ps(bags,flights)}</td><td class="right mono" style="color:${kwpct>0?kioskPctColor(kwpct):'var(--text3)'};font-weight:600;">${kwpct>0?kwpct.toFixed(1)+'%':'—'}</td><td><div class="pct-bar"><div class="mini-bar"><div class="mini-bar-fill" style="width:${Math.min(p,100)}%;background:${bc(p)};"></div></div><span style="font-size:.78rem;color:var(--text3);min-width:38px;text-align:right;">${p}%</span></div></td></tr>`;
+    wh+=`<tr${ic?' class="today-row"':''}><td><span style="font-size:.85rem;">${wklbl(wk)}</span>${ic?' <span class="badge ry" style="font-size:.65rem;">CORRENTE</span>':''}</td><td class="right mono">${days}</td><td class="right mono">${flights.toLocaleString('it')}</td><td class="right mono">${bags.toLocaleString('it')}</td><td class="right mono">${flights.toLocaleString('it')}</td><td class="right mono"><span class="badge ${dc(delta)}">${ds(delta)}${delta}</span></td><td class="right mono" style="color:${bc(p)};font-weight:600;">${ratioIT(bags,flights)}</td><td class="right mono">${ps(bags,flights)}</td><td class="right mono" style="color:${kwpct>0?kioskPctColor(kwpct):'var(--text3)'};font-weight:600;">${kwpct>0?fmtPct(kwpct):'—'}</td><td><div class="pct-bar"><div class="mini-bar"><div class="mini-bar-fill" style="width:${Math.min(p,100)}%;background:${bc(p)};"></div></div><span style="font-size:.78rem;color:var(--text3);min-width:38px;text-align:right;">${p}%</span></div></td></tr>`;
   });
   document.getElementById('week-body').innerHTML=wh||`<tr><td colspan="10"><div class="empty"><div class="empty-icon">✈</div><div class="empty-text">Nessun dato settimanale.</div></div></td></tr>`;
   const wtd=wb-wf;document.getElementById('week-foot').innerHTML=`<td>TOTALE YTD</td><td class="right mono">${wd}</td><td class="right mono">${wf.toLocaleString('it')}</td><td class="right mono">${wb.toLocaleString('it')}</td><td class="right mono">${wf.toLocaleString('it')}</td><td class="right mono">${ds(wtd)}${wtd}</td><td class="right mono" style="color:${bc(pn(wb,wf))};font-weight:700;">${ratioIT(wb,wf)}</td><td class="right mono">${ps(wb,wf)}</td><td></td>`;
@@ -2798,7 +2818,7 @@ function exportExcel(){
     const dow=['Dom','Lun','Mar','Mer','Gio','Ven','Sab'][new Date(d+'T00:00:00').getDay()];
     (flights||[]).forEach(f=>{
       const b=f.bags!==null&&f.bags!==undefined?+f.bags:0;
-      const delta=b-1;const ratio=parseFloat((b/1).toFixed(3));
+      const delta=b-1;const ratio=parseFloat((b/1).toFixed(2));
       rawRows.push([fmtDate(d),dow,f.carrier||'FR',f.dep,f.to,f.std||'',+f.booked||0,b,1,delta,ratio]);
     });
   });
@@ -2810,7 +2830,7 @@ function exportExcel(){
   const dayRows=[['Data','Giorno','N° Voli','Bagagli','Target','Delta','Ratio']];
   Object.entries(agg).sort(([a],[b])=>a.localeCompare(b)).forEach(([d,v])=>{
     const dow=['Dom','Lun','Mar','Mer','Gio','Ven','Sab'][new Date(d+'T00:00:00').getDay()];
-    const ratio=v.flights>0?parseFloat((v.bags/v.flights).toFixed(3)):0;
+    const ratio=v.flights>0?parseFloat((v.bags/v.flights).toFixed(2)):0;
     dayRows.push([fmtDate(d),dow,v.flights,v.bags,v.flights,v.bags-v.flights,ratio]);
   });
   const ws2=XLSX.utils.aoa_to_sheet(dayRows);
@@ -2821,11 +2841,11 @@ function exportExcel(){
   const months=getMagg();const monthRows=[['Mese','Giorni Op.','Voli','Bagagli','Target','Delta','Ratio']];
   Object.keys(months).sort().forEach(mk=>{
     const{flights,bags,days}=months[mk];
-    const ratio=flights>0?parseFloat((bags/flights).toFixed(3)):0;
+    const ratio=flights>0?parseFloat((bags/flights).toFixed(2)):0;
     monthRows.push([mkfull(mk),days,flights,bags,flights,bags-flights,ratio]);
   });
   const totM=Object.values(months).reduce((a,v)=>({flights:a.flights+v.flights,bags:a.bags+v.bags,days:a.days+v.days}),{flights:0,bags:0,days:0});
-  monthRows.push(['TOTALE YTD',totM.days,totM.flights,totM.bags,totM.flights,totM.bags-totM.flights,totM.flights>0?parseFloat((totM.bags/totM.flights).toFixed(3)):0]);
+  monthRows.push(['TOTALE YTD',totM.days,totM.flights,totM.bags,totM.flights,totM.bags-totM.flights,totM.flights>0?parseFloat((totM.bags/totM.flights).toFixed(2)):0]);
   const ws3=XLSX.utils.aoa_to_sheet(monthRows);
   ws3['!cols']=[{wch:14},{wch:10},{wch:8},{wch:8},{wch:8},{wch:8},{wch:8}];
   XLSX.utils.book_append_sheet(wb,ws3,'Riepilogo Mensile');
@@ -2834,7 +2854,7 @@ function exportExcel(){
   const weeks=getWagg();const weekRows=[['Settimana (Gio-Mer)','Giorni Op.','Voli','Bagagli','Target','Delta','Ratio']];
   Object.keys(weeks).sort().forEach(wk=>{
     const{flights,bags,days}=weeks[wk];
-    const ratio=flights>0?parseFloat((bags/flights).toFixed(3)):0;
+    const ratio=flights>0?parseFloat((bags/flights).toFixed(2)):0;
     weekRows.push([wklbl(wk),days,flights,bags,flights,bags-flights,ratio]);
   });
   const ws4=XLSX.utils.aoa_to_sheet(weekRows);
@@ -2845,7 +2865,7 @@ function exportExcel(){
   const qRows=[['Quarter','Voli','Bagagli','Target','Delta','Ratio']];
   [1,2,3,4].forEach(q=>{
     const qd=getQagg(q);
-    const ratio=qd.flights>0?parseFloat((qd.bags/qd.flights).toFixed(3)):0;
+    const ratio=qd.flights>0?parseFloat((qd.bags/qd.flights).toFixed(2)):0;
     qRows.push([`Q${q} ${year}`,qd.flights,qd.bags,qd.flights,qd.bags-qd.flights,ratio]);
   });
   const ws5=XLSX.utils.aoa_to_sheet(qRows);
@@ -2868,10 +2888,10 @@ function buildEmailBody(){
   const line='─'.repeat(44);
   const dDelta=ta.bags-ta.flights;const mDelta=month.bags-month.flights;
   const qDelta=qData.bags-qData.flights;const ytdDelta=ytd.bags-ytd.flights;
-  const dRatio=ta.flights>0?(ta.bags/ta.flights).toFixed(3):'n/d';
-  const mRatio=month.flights>0?(month.bags/month.flights).toFixed(3):'n/d';
-  const qRatio=qData.flights>0?(qData.bags/qData.flights).toFixed(3):'n/d';
-  const ytdRatio=ytd.flights>0?(ytd.bags/ytd.flights).toFixed(3):'n/d';
+  const dRatio=ta.flights>0?fmt2(ta.bags/ta.flights):'n/d';
+  const mRatio=month.flights>0?fmt2(month.bags/month.flights):'n/d';
+  const qRatio=qData.flights>0?fmt2(qData.bags/qData.flights):'n/d';
+  const ytdRatio=ytd.flights>0?fmt2(ytd.bags/ytd.flights):'n/d';
   const sign=n=>n>=0?'+':'';
   const miss=n=>n>0?`⚠ Mancano ${n} bag al target`:'✓ Target raggiunto';
   const body=
@@ -2940,7 +2960,7 @@ document.getElementById('email-modal').addEventListener('click',function(e){if(e
 
 // =================== KIOSK ===================
 function kioskPct(kiosk,total){return total>0?parseFloat((kiosk/total*100).toFixed(1)):0;}
-function kioskPctStr(kiosk,total){return total>0?(kiosk/total*100).toFixed(1)+'%':'—';}
+function kioskPctStr(kiosk,total){return total>0?fmtPct(kiosk/total*100):'—';}
 function kioskPctColor(pct){
   if(pct>=75)return'var(--accent)';  // blu — top (≥75%)
   if(pct>54.5)return'var(--green)';  // verde — ok (54.6-74.9%)
@@ -3013,7 +3033,7 @@ function renderKioskTable(date){
     const total=parseFloat(r.totalCkdB)||0;
     const kk=parseFloat(r.kiosk)||0;
     const pct=kioskPct(kk,total);
-    const pctStr=total>0?pct.toFixed(1)+'%':'—';
+    const pctStr=total>0?fmtPct(pct):'—';
     const pctColor=total>0?kioskPctColor(pct):'var(--text3)';
     html+=`<tr>
       <td><span class="carrier-badge">${r.carrier||'FR'}</span></td>
@@ -3051,7 +3071,7 @@ function liveKiosk(i,field){
   const k=parseFloat(document.getElementById('kk-'+i)?.value)||0;
   const pct=kioskPct(k,t);
   const el=document.getElementById('kpct-'+i);
-  if(el){el.textContent=t>0?pct.toFixed(1)+'%':'—';el.style.color=t>0?kioskPctColor(pct):'var(--text3)';}
+  if(el){el.textContent=t>0?fmtPct(pct):'—';el.style.color=t>0?kioskPctColor(pct):'var(--text3)';}
 }
 
 function saveKioskDay(){
@@ -3097,7 +3117,7 @@ function renderKioskDayKPIs(date){
       <div class="kpi-sub">${kioskPctStr(totK,totT)} del totale</div></div>
     <div class="kpi-card ${kioskCardClass(pct)}">
       <div class="kpi-label">Kiosk %</div>
-      <div class="kpi-main"><div class="kpi-value" style="color:${pctColor};">${totT>0?pct.toFixed(1)+'%':'—'}</div></div>
+      <div class="kpi-main"><div class="kpi-value" style="color:${pctColor};">${totT>0?fmtPct(pct):'—'}</div></div>
       <div class="kpi-progress"><div class="kpi-progress-bar" style="width:${Math.min(pct,100)}%;background:${pctColor};"></div></div>
     </div>`;
 }
@@ -3200,7 +3220,7 @@ function renderKioskTrendChart(){
           anchor:'end',align:'end',offset:2,
           color:(ctx)=>barColors[ctx.dataIndex],
           font:{size:9,weight:'700'},
-          formatter:v=>v!==null?v.toFixed(1)+'%':''
+          formatter:v=>v!==null?fmtPct(v):''
         }
       },
       // Target line at 55%
@@ -3244,7 +3264,7 @@ function renderKioskTrendChart(){
               const p=pcts[ctx.dataIndex];
               if(p===null)return' Nessun dato';
               const tag=p<=30?' ⚠ OUTLIER':p>74.5?' ⭐ TOP':p>54.5?' ✓ OK':' ✗ sotto soglia';
-              return` Kiosk%: ${p.toFixed(1)}%${tag}`;
+              return` Kiosk%: ${fmtPct(p)}${tag}`;
             }
           }
         }
