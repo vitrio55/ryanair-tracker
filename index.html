@@ -473,7 +473,10 @@ input::-webkit-calendar-picker-indicator{filter:invert(.5);cursor:pointer;}
 .ds-spark{display:block;}
 .ds-s{font-size:9.5px;color:var(--text3);white-space:nowrap;}
 @media(max-width:480px){.ds-group{flex-wrap:wrap;}.ds-tile{min-width:52px;}}
-.fw-badge{display:inline-block;margin-left:6px;padding:1px 5px;border-radius:4px;font-size:9.5px;font-weight:700;letter-spacing:.04em;background:rgba(142,68,173,.14);color:#8e44ad;vertical-align:middle;}
+.fw-chk{display:inline-flex;align-items:center;gap:3px;margin-left:6px;padding:1px 5px;border-radius:4px;font-size:9.5px;font-weight:700;letter-spacing:.04em;color:var(--text3);border:1px solid var(--border);cursor:pointer;vertical-align:middle;user-select:none;}
+.fw-chk input{margin:0;width:11px;height:11px;accent-color:#8e44ad;cursor:pointer;}
+.fw-chk.on{background:rgba(142,68,173,.14);color:#8e44ad;border-color:rgba(142,68,173,.35);}
+.fw-chk.man{border-style:dashed;}
 .day-summary-grid{
   display:grid;grid-template-columns:repeat(7,1fr);gap:8px;
   margin-top:12px;
@@ -1033,7 +1036,7 @@ async function loadKioskFromSupabase(){
 // ── SUPABASE CONFIG ─────────────────────────────────────────────────────────
 const SUPA_CONF_KEY='ry_supa_conf';
 // ── Credenziali di default (cambiale qui se cambi progetto) ──────────────────
-const APP_VERSION='2.1.1';
+const APP_VERSION='2.1.2';
 const APP_UPDATED='02/05/2026';
 const SUPA_DEFAULT={
   url:'https://hbfiaawypdsnfairulcy.supabase.co',
@@ -1570,7 +1573,7 @@ function renderFwDashKPIs(){
     {label:'FW — YTD '+year,a:getFwAgg(d=>d.startsWith(year))}
   ];
   el.className='kpi-grid';
-  el.innerHTML=`<div style="grid-column:1/-1;font-size:11px;font-weight:500;letter-spacing:.04em;text-transform:uppercase;color:var(--text3);padding-bottom:4px;border-bottom:1px solid var(--border);">🌅 FW — First Wave &nbsp;<span style="text-transform:none;font-weight:400;">(primi 2 voli con STD ≤ ${FW_CUTOFF} · target 1 bag/volo)</span></div>`+
+  el.innerHTML=`<div style="grid-column:1/-1;font-size:11px;font-weight:500;letter-spacing:.04em;text-transform:uppercase;color:var(--text3);padding-bottom:4px;border-bottom:1px solid var(--border);">🌅 FW — First Wave &nbsp;<span style="text-transform:none;font-weight:400;">(voli con STD ≤ ${FW_CUTOFF} o segnati FW · target 1 bag/volo)</span></div>`+
   cards.map(c=>{const a=c.a;const d=a.bags-a.n;const p=pn(a.bags,a.n);const r=a.n?ratioStr(a.bags,a.n):'—';
     return `<div class="kpi-card ${a.n===0?'blue':dc(d)}"><div class="kpi-label">${c.label}</div><div class="kpi-main"><div class="kpi-value mono" style="color:${a.n?bc(p):'var(--text3)'};">${r}</div></div><div class="kpi-row"><div class="kpi-sub">${a.bags} bag su ${a.n} voli FW${a.days>1?' · '+a.days+'gg':''}</div><div class="kpi-delta ${a.n?dc(d):'neu'}">${a.n?ds(d)+d:'—'}</div></div><div class="kpi-progress"><div class="kpi-progress-bar" style="width:${Math.min(p,100)}%;background:${bc(p)};"></div></div><div class="kpi-missing">${c.sub||(a.n===0?'Nessun dato (STD mancante)':p>=100?'<span style="color:var(--green)">✓ TARGET</span>':'mancano <span style="color:var(--red);font-weight:600;">'+Math.max(0,a.n-a.bags)+'</span> bag')}</div></div>`;}).join('');
 }
@@ -1720,13 +1723,25 @@ function loadDayFlights(){
   if(SEED_DATA[d]&&(!data[d]||data[d].length===0)){data[d]=JSON.parse(JSON.stringify(SEED_DATA[d]));sd(data);showSt('ok','Voli caricati per il '+fmtDate(d)+' ('+SEED_DATA[d].length+' voli FR).');}
   renderFT();renderHistory();
 }
-// ── FW (First Wave): primi 2 voli della giornata con STD ≤ 07:00, target 1 bag/volo ──
+// ── FW (First Wave): tutti i voli con STD ≤ 07:00, più/meno quelli segnati a mano (f.fw=true/false), target 1 bag/volo ──
 const FW_CUTOFF='07:00';
 function normStd(s){const m=String(s||'').trim().match(/^(\d{1,2}):(\d{2})$/);return m?pad(+m[1])+':'+m[2]:'';}
 function bagVal(x){return x&&x.bags!==null&&x.bags!==undefined&&x.bags!==''?+x.bags:null;}
-function fwIdx(flights){
-  return (flights||[]).map((f,i)=>({i,s:normStd(f.std)})).filter(x=>x.s&&x.s<=FW_CUTOFF)
-    .sort((a,b)=>a.s.localeCompare(b.s)).slice(0,2).map(x=>x.i);
+function fwAuto(f){const st=normStd(f&&f.std);return !!st&&st<=FW_CUTOFF;}
+function isFw(f){return f&&f.fw===true?true:f&&f.fw===false?false:fwAuto(f);}
+function fwIdx(flights){return (flights||[]).map((f,i)=>isFw(f)?i:-1).filter(i=>i>=0);}
+function toggleFw(i,checked){
+  const data=gd();const flights=data[curDate]||[];if(!flights[i])return;
+  // conserva eventuali valori non ancora salvati
+  flights.forEach((f,idx)=>{
+    const bk=document.getElementById('bk-'+idx);if(bk)f.booked=parseInt(bk.value)||0;
+    const bi=document.getElementById('bi-'+idx);if(bi){const v=bi.value.trim();f.bags=v===''?null:+v;}
+  });
+  const f=flights[i];
+  if(checked===fwAuto(f))delete f.fw;else f.fw=checked; // override solo se diverso dalla regola STD
+  data[curDate]=flights;sd(data);sdDate(curDate);setUnsaved(false);
+  renderFT();renderHistory();
+  showSt('ok',`${f.dep}: ${checked?'segnato come FW':'escluso da FW'}${f.fw!==undefined?' (manuale)':''}.`);
 }
 function fwDay(flights){
   const idx=fwIdx(flights);let bags=0,entered=0;
@@ -1807,7 +1822,7 @@ function renderFT(){
   flights.forEach((f,i)=>{
     const b=f.bags!==null&&f.bags!==undefined&&f.bags!==''?+f.bags:null;
     const delta=b!==null?b-1:'—';const dCl=b!==null?dc(b-1):'neu';const pct=b!==null?pn(b,1)+'%':'—';const pc=b!==null?pn(b,1):0;
-    html+=`<tr><td><span class="carrier-badge">${f.carrier||'FR'}</span></td><td class="mono" style="font-weight:700;letter-spacing:.04em;">${f.dep}</td><td><span class="dest-code">${f.to}</span></td><td class="center std-time">${f.std}${fwSet.has(i)?'<span class="fw-badge">FW</span>':''}</td><td class="right" style="min-width:88px;"><input type="number" class="bags-input" id="bk-${i}" value="${+f.booked||0}" min="0" placeholder="—" oninput="liveUpdBooked(${i})" style="width:76px;"></td><td class="right"><input type="number" class="bags-input" id="bi-${i}" value="${b!==null?b:''}" min="0" placeholder="—" oninput="liveUpd(${i})" style="width:72px;"></td><td class="right mono">1</td><td class="right mono" id="bd-${i}"><span class="badge ${dCl}">${b!==null?(ds(b-1)+(b-1)):'—'}</span></td><td class="right mono" id="bp-${i}" style="color:${b!==null?bc(pc):'var(--text3)'};">${pct}</td><td class="right"><button class="btn btn-danger btn-xs" onclick="delFlight(${i})">&#10005;</button></td></tr>`;
+    html+=`<tr><td><span class="carrier-badge">${f.carrier||'FR'}</span></td><td class="mono" style="font-weight:700;letter-spacing:.04em;">${f.dep}</td><td><span class="dest-code">${f.to}</span></td><td class="center std-time">${f.std}<label class="fw-chk${fwSet.has(i)?' on':''}${f.fw!==undefined?' man':''}" title="${f.fw!==undefined?'FW impostato a mano':'FW automatico (STD ≤ '+FW_CUTOFF+')'} — clic per cambiare"><input type="checkbox" ${fwSet.has(i)?'checked':''} onchange="toggleFw(${i},this.checked)">FW</label></td><td class="right" style="min-width:88px;"><input type="number" class="bags-input" id="bk-${i}" value="${+f.booked||0}" min="0" placeholder="—" oninput="liveUpdBooked(${i})" style="width:76px;"></td><td class="right"><input type="number" class="bags-input" id="bi-${i}" value="${b!==null?b:''}" min="0" placeholder="—" oninput="liveUpd(${i})" style="width:72px;"></td><td class="right mono">1</td><td class="right mono" id="bd-${i}"><span class="badge ${dCl}">${b!==null?(ds(b-1)+(b-1)):'—'}</span></td><td class="right mono" id="bp-${i}" style="color:${b!==null?bc(pc):'var(--text3)'};">${pct}</td><td class="right"><button class="btn btn-danger btn-xs" onclick="delFlight(${i})">&#10005;</button></td></tr>`;
   });
   document.getElementById('flights-body').innerHTML=html;
   const ft=document.getElementById('flights-foot');ft.style.display='';
@@ -1849,7 +1864,7 @@ function updateLiveTotals(){
   const td=bags-n;const tp=pn(bags,n);
   const totEl=document.getElementById('daily-totals');
   const src=gd()[curDate]||[];
-  const rows=flights.map((b,i)=>({std:(src[i]||{}).std||'',bags:b}));
+  const rows=flights.map((b,i)=>({std:(src[i]||{}).std||'',fw:(src[i]||{}).fw,bags:b}));
   if(totEl)totEl.innerHTML=daySummaryHtml(rows,booked);
   const ft=document.getElementById('flights-foot');
   if(ft&&ft.style.display!=='none')ft.innerHTML=`<td colspan="4">TOTALE GIORNO</td><td class="right mono">${booked.toLocaleString('it')}</td><td class="right mono" style="color:${bc(tp)};font-weight:700;">${bags}</td><td class="right mono">${n}</td><td class="right mono"><span class="badge ${dc(td)}">${ds(td)}${td}</span></td><td class="right mono" style="color:${bc(tp)}">${tp}%</td><td></td>`;
@@ -2291,7 +2306,7 @@ function confirmLoad(){
   const data=gd();
   const existing=data[targetDate]||[];
   const existingMap=Object.fromEntries(existing.map(f=>[f.dep,f]));
-  const merged=_pendingFlights.map(f=>{const ex=existingMap[f.dep];return ex?{...f,bags:ex.bags}:f;});
+  const merged=_pendingFlights.map(f=>{const ex=existingMap[f.dep];return ex?{...f,bags:ex.bags,...(ex.fw!==undefined?{fw:ex.fw}:{})}:f;});
   existing.forEach(f=>{if(!merged.find(m=>m.dep===f.dep))merged.push(f);});
   merged.sort((a,b)=>(a.std||'').localeCompare(b.std||''));
   data[targetDate]=merged;sd(data);sdDate(targetDate);
